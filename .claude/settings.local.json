@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(\"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/services/integration/__init__.py\")",
+      "Bash(\"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/services/core/__init__.py\")",
+      "Bash(\"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/services/operations/__init__.py\")",
+      "Bash(\"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/services/assistants/__init__.py\")",
+      "Bash(\"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/services/utils/__init__.py\")",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(uvicorn:*)",
+      "Bash(redis-cli DEL:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
