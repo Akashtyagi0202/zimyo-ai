@@ -25,6 +25,7 @@ import Loading from './messages/Loading'
 import StatsCards from './messages/StatsCards'
 import SuccessBanner from './messages/SuccessBanner'
 import ErrorCard from './messages/ErrorCard'
+import Chips from './messages/Chips'
 
 // Lazy imports — chart components (heavy, recharts ~400KB)
 const BarChart = lazy(() => import('./messages/BarChart'))
@@ -42,6 +43,7 @@ const RENDERERS = {
   // Data input
   form:          Form,
   wizard:        Wizard,
+  chips:         Chips,
 
   // Workflow
   checklist:     Checklist,

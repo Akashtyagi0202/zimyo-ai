@@ -63,10 +63,15 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
             msg={message.data}
             onAction={(a) => {
               if (a.values) {
-                // Form submit — send as structured JSON message
+                // Form submit — structured JSON with action + field values
                 onActionSelect?.(JSON.stringify({ action: a.action, ...a.values }))
-              } else {
-                onActionSelect?.(a.value || a.action)
+              } else if (a.action) {
+                // Button action (e.g. submit_leave, cancel) — JSON so backend can
+                // distinguish from natural language chat input
+                onActionSelect?.(JSON.stringify({ action: a.action }))
+              } else if (a.value !== undefined && a.value !== null) {
+                // Chip / simple text selection
+                onActionSelect?.(String(a.value))
               }
             }}
           />
@@ -74,7 +79,7 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
 
         {/* Action buttons - only on last bot message, skip if structured UI already has actions */}
         {!isUser && isLast && !message.data && onActionSelect && (
-          <ActionButtons text={message.text} leaveTypes={message.leaveTypes} onSelect={onActionSelect} />
+          <ActionButtons text={message.text} onSelect={onActionSelect} />
         )}
 
         {/* Resource attachments (policy documents) */}

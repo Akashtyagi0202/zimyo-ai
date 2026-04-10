@@ -1,10 +1,9 @@
 /**
  * Smart action buttons that appear below bot messages.
  *
- * Rule (from FRONTEND_INSTRUCTIONS.md):
- *   -> User ko NAME dikhao, backend ko ID bhejo.
- *   -> leaveTypes API se aaye toh dynamic chips banao,
- *     warna fallback static chips dikhao.
+ * Pattern-based static chips that match the bot's question text.
+ * Dynamic lists (e.g. leave types) are sent by backend as a
+ * {type: "chips"} ui block and rendered via MessageRenderer instead.
  */
 
 const COLORS = [
@@ -19,12 +18,6 @@ const COLORS = [
 ]
 
 const PATTERNS = [
-  {
-    key: 'leave_type',
-    test: (text) =>
-      /type of leave|leave type|किस प्रकार|what type|which type|kis prakar/i.test(text),
-    dynamic: true,
-  },
   {
     key: 'half_day',
     test: (text) =>
@@ -117,33 +110,12 @@ const PATTERNS = [
   },
 ]
 
-export default function ActionButtons({ text, leaveTypes, onSelect }) {
+export default function ActionButtons({ text, onSelect }) {
   if (!text) return null
   if (/^[✅❌]/.test(text.trim())) return null
 
   const match = PATTERNS.find((p) => p.test(text))
-  if (!match) return null
-
-  // Dynamic leave type chips from API
-  if (match.dynamic && leaveTypes && leaveTypes.length > 0) {
-    return (
-      <div className="flex flex-wrap gap-2 mt-3 animate-slide-up">
-        {leaveTypes.map((lt, i) => (
-          <button
-            key={lt.id}
-            onClick={() => onSelect(lt.name)}
-            className={`animate-stagger px-3.5 py-2 rounded-xl border text-xs font-medium transition-all active:scale-95 ${COLORS[i % COLORS.length]}`}
-            style={{ animationDelay: `${i * 50}ms` }}
-          >
-            {lt.name} ({lt.balance})
-          </button>
-        ))}
-      </div>
-    )
-  }
-
-  // Static options
-  if (!match.options) return null
+  if (!match || !match.options) return null
 
   return (
     <div className="flex flex-wrap gap-2 mt-3 animate-slide-up">

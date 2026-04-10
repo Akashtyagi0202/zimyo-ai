@@ -8,6 +8,27 @@ import QuickActions from '../components/QuickActions'
 import Toast from '../components/Toast'
 import { ArrowLeft, CalendarDays, FileSearch } from 'lucide-react'
 
+/**
+ * Convert a send payload into a human-friendly label for the chat bubble.
+ * Button clicks send JSON like `{"action":"submit_leave"}` which is ugly to show.
+ * Plain text / chip selections pass through unchanged.
+ */
+function getDisplayText(text) {
+  if (typeof text !== 'string' || !text.startsWith('{')) return text
+  try {
+    const parsed = JSON.parse(text)
+    if (parsed && typeof parsed.action === 'string') {
+      return parsed.action
+        .replace(/[_-]+/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+        .trim()
+    }
+  } catch {
+    // not JSON — fall through
+  }
+  return text
+}
+
 const AGENT_CONFIG = {
   'leave-attendance': {
     title: 'Leave & Attendance Agent',
@@ -94,12 +115,15 @@ export default function Chat({ user, onLogout }) {
       const history = result.history || result.messages || []
       if (Array.isArray(history)) {
         setMessages(
-          history.map((msg, i) => ({
-            id: `hist-${i}`,
-            role: msg.role,
-            text: msg.message || msg.content || msg.text,
-            timestamp: msg.timestamp,
-          }))
+          history.map((msg, i) => {
+            const raw = msg.message || msg.content || msg.text
+            return {
+              id: `hist-${i}`,
+              role: msg.role,
+              text: msg.role === 'user' ? getDisplayText(raw) : raw,
+              timestamp: msg.timestamp,
+            }
+          })
         )
       }
     } catch {
@@ -132,7 +156,7 @@ export default function Chat({ user, onLogout }) {
       const userMsg = {
         id: `user-${Date.now()}`,
         role: 'user',
-        text,
+        text: getDisplayText(text),
         timestamp: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, userMsg])
@@ -150,7 +174,6 @@ export default function Chat({ user, onLogout }) {
           text: result.agentMessage || result.reply || result.response || 'No response received.',
           timestamp: new Date().toISOString(),
           resources: result.resources || null,
-          leaveTypes: result.leaveTypes || null,
           data: result.ui || result.data || null,
         }
         setMessages((prev) => [...prev, botMsg])
