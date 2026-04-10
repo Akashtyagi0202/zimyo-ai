@@ -12,7 +12,12 @@
       "Bash(curl:*)",
       "Bash(source venv/bin/activate)",
       "Bash(uvicorn:*)",
-      "Bash(redis-cli DEL:*)"
+      "Bash(redis-cli DEL:*)",
+      "Bash(rm:*)",
+      "Bash(ls \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/venv/bin/python\"*)",
+      "Bash(ls \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python\"*)",
+      "Bash(venv/bin/python -c ':*)",
+      "Bash(npm run:*)"
     ],
     "deny": [],
     "ask": []
