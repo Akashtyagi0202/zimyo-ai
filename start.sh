@@ -116,7 +116,7 @@ case $choice in
         sleep 2
 
         # Run Python app (will auto-spawn MCP server)
-        uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+        uvicorn hrms_agents.main:app --host 0.0.0.0 --port 8080 --reload
         ;;
 
     2)
@@ -172,7 +172,7 @@ case $choice in
         trap "echo ''; echo 'Stopping servers...'; kill $NODE_PID 2>/dev/null; exit" INT TERM
 
         # Run Python app
-        uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+        uvicorn hrms_agents.main:app --host 0.0.0.0 --port 8080 --reload
         ;;
 
     *)
