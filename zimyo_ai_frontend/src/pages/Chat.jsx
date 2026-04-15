@@ -6,7 +6,7 @@ import ChatMessage, { TypingIndicator } from '../components/ChatMessage'
 import ChatInput from '../components/ChatInput'
 import QuickActions from '../components/QuickActions'
 import Toast from '../components/Toast'
-import { ArrowLeft, CalendarDays, FileSearch } from 'lucide-react'
+import { ArrowLeft, CalendarDays, FileSearch, UserPlus } from 'lucide-react'
 
 /**
  * Convert a send payload into a human-friendly label for the chat bubble.
@@ -45,6 +45,14 @@ const AGENT_CONFIG = {
     gradient: 'from-violet-500 to-purple-600',
     placeholder: 'Ask about any company policy... (e.g., leave policy kya hai?)',
     inputHint: 'Leave Policy | HR Rules | Guidelines | Benefits',
+  },
+  'onboarding': {
+    title: 'Onboarding Agent',
+    subtitle: 'CTC computation, offer letter, candidate onboarding',
+    icon: UserPlus,
+    gradient: 'from-amber-500 to-orange-600',
+    placeholder: "Type your message... (e.g., akash ka CTC compute kro)",
+    inputHint: 'CTC Compute | Offer Letter | Documents | Verification',
   },
 }
 

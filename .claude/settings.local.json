@@ -17,7 +17,16 @@
       "Bash(ls \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/venv/bin/python\"*)",
       "Bash(ls \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python\"*)",
       "Bash(venv/bin/python -c ':*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(ZIMYO_USER='akash.tyagi+demo@zimyo.com' ZIMYO_PASS='Zimyo@12345' \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python3\" explore.py)",
+      "Bash(ZIMYO_USER='akash.tyagi+demo@zimyo.com' ZIMYO_PASS='Zimyo@12345' \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python3\" explore_onboarding.py)",
+      "Bash(ZIMYO_USER='akash.tyagi+demo@zimyo.com' ZIMYO_PASS='Zimyo@12345' \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python3\" explore_candidate_page.py)",
+      "Bash(ZIMYO_USER='akash.tyagi+demo@zimyo.com' ZIMYO_PASS='Zimyo@12345' \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python3\" explore_candidate_exhaustive.py)",
+      "Bash(/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python3:*)",
+      "Bash(ZIMYO_USER='akash.tyagi+demo@zimyo.com' ZIMYO_PASS='Zimyo@12345' \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python3\" explore_test_loi_explore.py)",
+      "Bash(ZIMYO_USER='akash.tyagi+demo@zimyo.com' ZIMYO_PASS='Zimyo@12345' \"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python3\" compute_ctc.py)",
+      "Bash(node -e \"const H = require\\('./src/mcp/handlers/candidate_ctc.handler'\\); const h = new H\\(\\); console.log\\('Tools:', h.getTools\\(\\).map\\(t => t.name\\)\\);\")",
+      "Bash(node -e \"const H = require\\('./src/mcp/handlers/candidate_ctc.handler'\\); const h = new H\\(\\); const tools = h.getTools\\(\\); console.log\\('Tools + required:'\\); tools.forEach\\(t => console.log\\(' -', t.name, 'required:', t.inputSchema.required\\)\\);\")"
     ],
     "deny": [],
     "ask": []

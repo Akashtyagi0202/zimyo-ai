@@ -13,6 +13,10 @@ import {
   HelpCircle,
   Sparkles,
   MessageCircle,
+  UserPlus,
+  FileText,
+  Users,
+  Calculator,
 } from 'lucide-react'
 
 const LEAVE_ACTIONS = [
@@ -119,6 +123,44 @@ const POLICY_ACTIONS = [
   },
 ]
 
+const ONBOARDING_ACTIONS = [
+  {
+    label: 'Compute CTC',
+    message: 'Test LOI Explore ka CTC compute kro',
+    icon: Calculator,
+    color: 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 hover:border-amber-300',
+    iconBg: 'bg-amber-100',
+  },
+  {
+    label: 'Candidate List',
+    message: 'Add Candidate CTC bucket mein kaun kaun hai?',
+    icon: Users,
+    color: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:border-blue-300',
+    iconBg: 'bg-blue-100',
+  },
+  {
+    label: 'New Candidate',
+    message: 'Naya candidate add karna hai',
+    icon: UserPlus,
+    color: 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300',
+    iconBg: 'bg-emerald-100',
+  },
+  {
+    label: 'Offer Letter',
+    message: 'Offer letter generate karo',
+    icon: FileText,
+    color: 'bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100 hover:border-violet-300',
+    iconBg: 'bg-violet-100',
+  },
+]
+
+const ONBOARDING_PROMPTS = [
+  'Akash ka CTC compute kro',
+  'Test LOI Explore ka gross 5 lakh krdo',
+  'Add Candidate CTC mein kitne pending hain?',
+  'Candidate ko offer letter bhejo',
+]
+
 const LEAVE_PROMPTS = [
   'Sick leave for tomorrow',
   'WFH today 10am to 7pm',
@@ -137,8 +179,9 @@ const POLICY_PROMPTS = [
 
 export default function QuickActions({ agentType, onAction }) {
   const isPolicy = agentType === 'policy'
-  const actions = isPolicy ? POLICY_ACTIONS : LEAVE_ACTIONS
-  const prompts = isPolicy ? POLICY_PROMPTS : LEAVE_PROMPTS
+  const isOnboarding = agentType === 'onboarding'
+  const actions = isOnboarding ? ONBOARDING_ACTIONS : isPolicy ? POLICY_ACTIONS : LEAVE_ACTIONS
+  const prompts = isOnboarding ? ONBOARDING_PROMPTS : isPolicy ? POLICY_PROMPTS : LEAVE_PROMPTS
 
   return (
     <div className="max-w-3xl mx-auto px-4 animate-fade-in">
@@ -149,21 +192,25 @@ export default function QuickActions({ agentType, onAction }) {
           AI-Powered HR Assistant
         </div>
         <h2 className="text-2xl font-bold text-gray-900">
-          {isPolicy ? (
+          {isOnboarding ? (
+            <>Onboarding <span className="gradient-text">Assistant</span></>
+          ) : isPolicy ? (
             <>Policy <span className="gradient-text">Assistant</span></>
           ) : (
             <><span className="animate-wave">👋</span> Namaste! <span className="gradient-text">Kya help chahiye?</span></>
           )}
         </h2>
         <p className="text-gray-500 mt-2.5 text-sm max-w-md mx-auto">
-          {isPolicy
+          {isOnboarding
+            ? 'Compute CTC, send offer letters, and manage candidate onboarding'
+            : isPolicy
             ? 'Ask me anything about company policies & HR rules'
             : 'Choose a quick action or type your request below'}
         </p>
       </div>
 
       {/* Action Grid */}
-      <div className={`grid gap-3 ${isPolicy ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+      <div className={`grid gap-3 ${(isPolicy || isOnboarding) ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
         {actions.map((action, index) => {
           const Icon = action.icon
           return (
