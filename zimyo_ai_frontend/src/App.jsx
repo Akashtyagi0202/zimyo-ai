@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Login from './pages/Login'
 import AgentSelect from './pages/AgentSelect'
 import Chat from './pages/Chat'
+import { DarkModeProvider } from './hooks/useDarkMode'
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -28,26 +29,28 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          user ? <Navigate to="/agents" replace /> : <Login onLogin={handleLogin} />
-        }
-      />
-      <Route
-        path="/agents"
-        element={
-          user ? <AgentSelect user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />
-        }
-      />
-      <Route
-        path="/chat/:agentType"
-        element={
-          user ? <Chat user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />
-        }
-      />
-      <Route path="*" element={<Navigate to={user ? "/agents" : "/login"} replace />} />
-    </Routes>
+    <DarkModeProvider>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            user ? <Navigate to="/agents" replace /> : <Login onLogin={handleLogin} />
+          }
+        />
+        <Route
+          path="/agents"
+          element={
+            user ? <AgentSelect user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/chat/:agentType"
+          element={
+            user ? <Chat user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />
+          }
+        />
+        <Route path="*" element={<Navigate to={user ? "/agents" : "/login"} replace />} />
+      </Routes>
+    </DarkModeProvider>
   )
 }

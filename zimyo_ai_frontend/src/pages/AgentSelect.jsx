@@ -84,27 +84,27 @@ export default function AgentSelect({ user, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 bg-grid">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 bg-grid">
       {/* Header */}
-      <header className="glass border-b border-gray-200/50 sticky top-0 z-10">
+      <header className="glass border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-zimyo-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-zimyo-600/20">
               <Bot className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Zimyo AI</h1>
-              <p className="text-xs text-gray-500">Choose your assistant</p>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Zimyo AI</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Choose your assistant</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-medium text-gray-700">{user?.userId}</p>
-              <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{user?.userId}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 capitalize">{user?.role}</p>
             </div>
             <button
               onClick={onLogout}
-              className="p-2 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all active:scale-95"
+              className="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 text-gray-400 hover:text-red-500 transition-all active:scale-95"
               title="Logout"
             >
               <LogOut className="w-5 h-5" />
@@ -117,14 +117,14 @@ export default function AgentSelect({ user, onLogout }) {
       <main className="max-w-6xl mx-auto px-6 py-12">
         {/* Welcome */}
         <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-zimyo-50 border border-zimyo-200 rounded-full text-xs font-medium text-zimyo-600 mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-zimyo-50 dark:bg-zimyo-900/30 border border-zimyo-200 dark:border-zimyo-700/40 rounded-full text-xs font-medium text-zimyo-600 dark:text-zimyo-300 mb-4">
             <Sparkles className="w-3.5 h-3.5" />
             AI-Powered HR Assistant
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             <span className="animate-wave">👋</span> Namaste! <span className="gradient-text">Kya help chahiye?</span>
           </h2>
-          <p className="text-gray-500 mt-3 text-base">
+          <p className="text-gray-500 dark:text-gray-400 mt-3 text-base">
             Select an AI agent to get started
           </p>
         </div>
@@ -137,10 +137,10 @@ export default function AgentSelect({ user, onLogout }) {
               <div
                 key={agent.id}
                 onClick={() => handleSelect(agent)}
-                className={`animate-stagger relative rounded-2xl border-2 bg-white p-6 transition-all ${
+                className={`animate-stagger relative rounded-2xl border-2 bg-white dark:bg-gray-800 p-6 transition-all ${
                   agent.available
                     ? `${agent.borderColor} cursor-pointer card-hover ${agent.shadowColor}`
-                    : 'border-gray-200 opacity-70 cursor-not-allowed'
+                    : 'border-gray-200 dark:border-gray-700 opacity-70 cursor-not-allowed'
                 }`}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -158,11 +158,11 @@ export default function AgentSelect({ user, onLogout }) {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-bold text-gray-900">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {agent.title}
-                  <span className="text-sm font-medium text-gray-400 ml-2">{agent.subtitle}</span>
+                  <span className="text-sm font-medium text-gray-400 dark:text-gray-500 ml-2">{agent.subtitle}</span>
                 </h3>
-                <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
                   {agent.description}
                 </p>
 
@@ -174,7 +174,9 @@ export default function AgentSelect({ user, onLogout }) {
                       <span
                         key={feat.label}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-                          agent.available ? agent.bgLight + ' text-gray-700' : 'bg-gray-50 text-gray-400'
+                          agent.available
+                            ? `${agent.bgLight} text-gray-700 dark:bg-gray-700/60 dark:text-gray-200`
+                            : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                         }`}
                       >
                         <FeatIcon className="w-3 h-3" />
@@ -186,7 +188,7 @@ export default function AgentSelect({ user, onLogout }) {
 
                 {/* CTA */}
                 {agent.available && (
-                  <div className="flex items-center gap-2 mt-6 text-sm font-semibold text-zimyo-600 group">
+                  <div className="flex items-center gap-2 mt-6 text-sm font-semibold text-zimyo-600 dark:text-zimyo-400 group">
                     <span>Start Chat</span>
                     <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                   </div>

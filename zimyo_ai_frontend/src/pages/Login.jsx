@@ -85,7 +85,7 @@ export default function Login({ onLogin }) {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-white/20 dark:border-gray-700">
           {/* Policy Loading State */}
           {policyStatus && (
             <PolicyLoadingCard status={policyStatus} />
@@ -103,7 +103,7 @@ export default function Login({ onLogin }) {
 
               {/* User ID */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Employee ID</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Employee ID</label>
                 <div className="relative group">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-zimyo-500 transition-colors" />
                   <input
@@ -112,20 +112,20 @@ export default function Login({ onLogin }) {
                     onChange={(e) => setForm({ ...form, userId: e.target.value })}
                     placeholder="Enter your employee ID"
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 hover:bg-white hover:border-gray-300"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600"
                   />
                 </div>
               </div>
 
               {/* Role */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Role</label>
                 <div className="relative group">
                   <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-zimyo-500 transition-colors" />
                   <select
                     value={form.role}
                     onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 hover:bg-white hover:border-gray-300 appearance-none cursor-pointer"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600 appearance-none cursor-pointer"
                   >
                     <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
@@ -135,7 +135,7 @@ export default function Login({ onLogin }) {
 
               {/* Token */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Auth Token</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Auth Token</label>
                 <div className="relative group">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-zimyo-500 transition-colors" />
                   <input
@@ -144,7 +144,7 @@ export default function Login({ onLogin }) {
                     onChange={(e) => setForm({ ...form, userToken: e.target.value })}
                     placeholder="Enter your auth token"
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 hover:bg-white hover:border-gray-300"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600"
                   />
                 </div>
               </div>
@@ -193,10 +193,10 @@ function PolicyLoadingCard({ status }) {
           <Loader2 className="w-6 h-6 text-zimyo-600 animate-spin" />
         )}
         <div>
-          <p className="font-semibold text-gray-900">
+          <p className="font-semibold text-gray-900 dark:text-gray-100">
             {isComplete ? 'Ready!' : isFailed ? 'Error' : 'Setting up your session...'}
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {isComplete
               ? 'Policies loaded. Redirecting...'
               : isFailed
@@ -209,13 +209,13 @@ function PolicyLoadingCard({ status }) {
       {/* Progress bar */}
       {!isComplete && !isFailed && (
         <div className="space-y-2">
-          <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-zimyo-600 to-indigo-600 rounded-full transition-all duration-500"
               style={{ width: `${Math.max(progress, 10)}%` }}
             />
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
             <FileText className="w-3 h-3" />
             <span>
               {status.processed}/{status.total || '...'} policies processed

@@ -6,7 +6,8 @@ import ChatMessage, { TypingIndicator } from '../components/ChatMessage'
 import ChatInput from '../components/ChatInput'
 import QuickActions from '../components/QuickActions'
 import Toast from '../components/Toast'
-import { ArrowLeft, CalendarDays, FileSearch, UserPlus } from 'lucide-react'
+import { ArrowLeft, CalendarDays, FileSearch, UserPlus, Sun, Moon } from 'lucide-react'
+import useDarkMode from '../hooks/useDarkMode'
 
 /**
  * Convert a send payload into a human-friendly label for the chat bubble.
@@ -61,6 +62,7 @@ export default function Chat({ user, onLogout }) {
   const navigate = useNavigate()
   const config = AGENT_CONFIG[agentType] || AGENT_CONFIG['leave-attendance']
   const AgentIcon = config.icon
+  const { isDark, toggle: toggleDark } = useDarkMode()
 
   const [sessions, setSessions] = useState([])
   const [activeSessionId, setActiveSessionId] = useState(null)
@@ -208,7 +210,7 @@ export default function Chat({ user, onLogout }) {
   const showQuickActions = messages.length === 0
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors">
       {/* Toast notifications */}
       <Toast toast={toast} onDismiss={() => setToast(null)} />
 
@@ -227,11 +229,11 @@ export default function Chat({ user, onLogout }) {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Chat Header - Glassmorphism */}
-        <div className="glass border-b border-gray-200/50 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div className="glass border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/agents')}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all active:scale-95"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-all active:scale-95"
               title="Back to agents"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -240,13 +242,22 @@ export default function Chat({ user, onLogout }) {
               <AgentIcon className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-gray-900">{config.title}</h1>
-              <p className="text-xs text-gray-500">{config.subtitle}</p>
+              <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{config.title}</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{config.subtitle}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-online-pulse" />
-            <span className="text-xs text-gray-500 font-medium">Online</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleDark}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-yellow-400 transition-all active:scale-95"
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-online-pulse" />
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Online</span>
+            </div>
           </div>
         </div>
 
@@ -276,6 +287,7 @@ export default function Chat({ user, onLogout }) {
           disabled={loading}
           placeholder={config.placeholder}
           hint={config.inputHint}
+          onError={setToast}
         />
       </div>
     </div>

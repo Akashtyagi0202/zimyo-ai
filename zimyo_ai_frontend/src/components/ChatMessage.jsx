@@ -1,16 +1,52 @@
-import { useState } from 'react'
-import { Bot, User, FileText, Copy, Check } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Bot, User, FileText, Copy, Check, Volume2, VolumeX } from 'lucide-react'
 import ActionButtons from './ActionButtons'
 import MessageRenderer from './MessageRenderer'
 
 export default function ChatMessage({ message, isLast, onActionSelect }) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const speakingRef = useRef(false)
+
+  const ttsSupported =
+    typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
+
+  useEffect(() => {
+    speakingRef.current = isSpeaking
+  }, [isSpeaking])
+
+  useEffect(() => {
+    return () => {
+      if (speakingRef.current) {
+        try { window.speechSynthesis.cancel() } catch (_) { /* ignore */ }
+      }
+    }
+  }, [])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.text || '')
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
+  }
+
+  const handleSpeak = () => {
+    if (!ttsSupported) return
+    if (isSpeaking) {
+      try { window.speechSynthesis.cancel() } catch (_) { /* ignore */ }
+      setIsSpeaking(false)
+      return
+    }
+    const clean = (message.text || '').replace(/[*_`#~>]/g, '').trim()
+    if (!clean) return
+    try { window.speechSynthesis.cancel() } catch (_) { /* ignore */ }
+    const u = new SpeechSynthesisUtterance(clean)
+    u.lang = 'hi-IN'
+    u.rate = 0.9
+    u.onend = () => setIsSpeaking(false)
+    u.onerror = () => setIsSpeaking(false)
+    window.speechSynthesis.speak(u)
+    setIsSpeaking(true)
   }
 
   return (
@@ -35,25 +71,42 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
             className={`msg-bubble px-4 py-3 rounded-2xl text-sm leading-relaxed ${
               isUser
                 ? 'bg-gradient-to-br from-zimyo-600 to-zimyo-700 text-white rounded-tr-md shadow-md shadow-zimyo-600/20'
-                : 'bg-white border border-gray-100 text-gray-800 rounded-tl-md shadow-sm'
+                : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-md shadow-sm'
             }`}
           >
             <FormattedText text={message.text} isUser={isUser} />
           </div>
 
-          {/* Copy button on hover (bot messages only) */}
+          {/* Action icons on hover (bot messages only) */}
           {!isUser && message.text && (
-            <button
-              onClick={handleCopy}
-              className="absolute -right-8 top-2 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              title="Copy message"
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5 text-green-500" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
+            <div className="absolute -right-8 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+              <button
+                onClick={handleCopy}
+                className="p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Copy message"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-green-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+              {ttsSupported && (
+                <button
+                  onClick={handleSpeak}
+                  className={`p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                    isSpeaking ? 'text-zimyo-600 dark:text-zimyo-400' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200'
+                  }`}
+                  title={isSpeaking ? 'Stop speaking' : 'Speak message'}
+                >
+                  {isSpeaking ? (
+                    <VolumeX className="w-3.5 h-3.5" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5" />
+                  )}
+                </button>
               )}
-            </button>
+            </div>
           )}
         </div>
 
@@ -99,7 +152,7 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
 
         {/* Timestamp */}
         {message.timestamp && (
-          <p className={`text-[10px] text-gray-400 mt-1.5 ${isUser ? 'text-right' : 'text-left'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+          <p className={`text-[10px] text-gray-400 dark:text-gray-500 mt-1.5 ${isUser ? 'text-right' : 'text-left'} opacity-0 group-hover:opacity-100 transition-opacity`}>
             {new Date(message.timestamp).toLocaleTimeString('en-IN', {
               hour: '2-digit',
               minute: '2-digit',
@@ -123,7 +176,7 @@ function FormattedText({ text, isUser }) {
 
         if (line.startsWith('\u2705')) {
           return (
-            <p key={i} className={`font-semibold ${isUser ? '' : 'text-green-700'}`}>
+            <p key={i} className={`font-semibold ${isUser ? '' : 'text-green-700 dark:text-green-400'}`}>
               {line}
             </p>
           )
@@ -131,7 +184,7 @@ function FormattedText({ text, isUser }) {
 
         if (line.startsWith('\u274C')) {
           return (
-            <p key={i} className={`font-semibold ${isUser ? '' : 'text-red-600'}`}>
+            <p key={i} className={`font-semibold ${isUser ? '' : 'text-red-600 dark:text-red-400'}`}>
               {line}
             </p>
           )
@@ -139,7 +192,7 @@ function FormattedText({ text, isUser }) {
 
         if (/^[\u{1F4CB}\u{1F4C5}\u{1F4DD}\u{1F4CA}\u{2022}\u{1F4CE}\u{2B50}\u{1F550}\u{23F0}\u{23F1}]/u.test(line)) {
           return (
-            <p key={i} className={isUser ? '' : 'text-gray-700'}>
+            <p key={i} className={isUser ? '' : 'text-gray-700 dark:text-gray-200'}>
               {line}
             </p>
           )
@@ -147,7 +200,7 @@ function FormattedText({ text, isUser }) {
 
         if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
           return (
-            <p key={i} className={`pl-2 ${isUser ? '' : 'text-gray-600'}`}>
+            <p key={i} className={`pl-2 ${isUser ? '' : 'text-gray-600 dark:text-gray-300'}`}>
               {line}
             </p>
           )
@@ -165,11 +218,11 @@ export function TypingIndicator() {
       <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br from-violet-500 to-indigo-600 shadow-sm">
         <Bot className="w-4 h-4 text-white" />
       </div>
-      <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-md px-5 py-3.5 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-tl-md px-5 py-3.5 shadow-sm">
         <div className="flex gap-1.5 items-center">
-          <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot" />
-          <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot" />
-          <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot" />
+          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full typing-dot" />
+          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full typing-dot" />
+          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full typing-dot" />
         </div>
       </div>
     </div>
