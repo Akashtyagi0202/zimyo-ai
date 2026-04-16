@@ -27,10 +27,11 @@ import SuccessBanner from './messages/SuccessBanner'
 import ErrorCard from './messages/ErrorCard'
 import Chips from './messages/Chips'
 
-// Lazy imports — chart components (heavy, recharts ~400KB)
+// Lazy imports — chart components (heavy, recharts ~400KB) + editor (TipTap ~120KB)
 const BarChart = lazy(() => import('./messages/BarChart'))
 const LineChart = lazy(() => import('./messages/LineChart'))
 const PieChart = lazy(() => import('./messages/PieChart'))
+const Editor = lazy(() => import('./messages/Editor'))
 
 const RENDERERS = {
   // Data display
@@ -44,6 +45,7 @@ const RENDERERS = {
   form:          Form,
   wizard:        Wizard,
   chips:         Chips,
+  editor:        Editor,
 
   // Workflow
   checklist:     Checklist,
@@ -65,8 +67,8 @@ const RENDERERS = {
   loading:       Loading,
 }
 
-// Chart types that need Suspense wrapper
-const LAZY_TYPES = new Set(['chart_bar', 'chart_line', 'chart_pie'])
+// Types that need Suspense wrapper (lazy-loaded above)
+const LAZY_TYPES = new Set(['chart_bar', 'chart_line', 'chart_pie', 'editor'])
 
 function ChartFallback() {
   return (
