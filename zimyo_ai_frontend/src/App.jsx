@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Login from './pages/Login'
 import AgentSelect from './pages/AgentSelect'
 import Chat from './pages/Chat'
+import Settings from './pages/Settings'
 import { DarkModeProvider } from './hooks/useDarkMode'
 
 export default function App() {
@@ -47,6 +48,12 @@ export default function App() {
           path="/chat/:agentType"
           element={
             user ? <Chat user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            user ? <Settings user={user} /> : <Navigate to="/login" replace />
           }
         />
         <Route path="*" element={<Navigate to={user ? "/agents" : "/login"} replace />} />

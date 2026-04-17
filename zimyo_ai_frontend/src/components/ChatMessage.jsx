@@ -53,14 +53,16 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
     <div className={`flex gap-2.5 items-start animate-slide-up group ${isUser ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
       <div
-        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
-          isUser ? 'bg-zimyo-600' : 'bg-indigo-600'
+        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+          isUser
+            ? 'bg-indigo-600 shadow-sm shadow-indigo-600/20'
+            : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm'
         }`}
       >
         {isUser ? (
           <User className="w-4 h-4 text-white" />
         ) : (
-          <Bot className="w-4 h-4 text-white" />
+          <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
         )}
       </div>
 
@@ -70,8 +72,8 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
           <div
             className={`msg-bubble leading-relaxed rounded-lg ${
               isUser
-                ? 'px-3 py-2 text-[13px] font-light bg-zimyo-600 text-white rounded-tr-none shadow-sm'
-                : 'px-3.5 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
+                ? 'px-3 py-2 text-[13px] font-light bg-indigo-600 text-white rounded-tr-none shadow-sm shadow-indigo-600/15'
+                : 'px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-none'
             }`}
           >
             <FormattedText text={message.text} isUser={isUser} />
@@ -214,15 +216,15 @@ function FormattedText({ text, isUser }) {
 
 export function TypingIndicator() {
   return (
-    <div className="flex gap-3 animate-slide-up">
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-indigo-600 shadow-sm">
-        <Bot className="w-4 h-4 text-white" />
+    <div className="flex gap-2.5 items-start animate-slide-up">
+      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+        <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
       </div>
-      <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-tl-md px-5 py-3.5 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 rounded-lg rounded-tl-none px-4 py-3">
         <div className="flex gap-1.5 items-center">
-          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full typing-dot" />
-          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full typing-dot" />
-          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full typing-dot" />
+          <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
+          <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
+          <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
         </div>
       </div>
     </div>

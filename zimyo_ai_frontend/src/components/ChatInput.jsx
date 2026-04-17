@@ -24,8 +24,8 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
   useEffect(() => {
     if (!speechSupported) return
     const rec = new SpeechRecognitionCtor()
-    rec.lang = 'hi-IN'
-    rec.continuous = false
+    rec.lang = 'en-IN'
+    rec.continuous = true
     rec.interimResults = true
 
     rec.onresult = (e) => {
@@ -110,9 +110,9 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
   const showInterimBar = isListening || Boolean(interimText)
 
   return (
-    <div className="border-t border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-end gap-2 bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2 glow-ring focus-within:border-zimyo-400 transition-all">
+    <div className="border-t border-slate-200/70 dark:border-slate-700/50 bg-white/90 dark:bg-slate-900/80 backdrop-blur-md p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-end gap-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2 transition-all focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-500/20 focus-within:bg-white dark:focus-within:bg-slate-800">
           <textarea
             ref={textareaRef}
             value={text}
@@ -121,7 +121,7 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
             placeholder={placeholder || 'Type your message...'}
             disabled={disabled}
             rows={1}
-            className="flex-1 bg-transparent outline-none resize-none text-sm py-2 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-800 dark:text-gray-100 disabled:opacity-50"
+            className="flex-1 bg-transparent outline-none resize-none text-[13px] py-2 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-800 dark:text-slate-100 disabled:opacity-50"
           />
           <button
             type="button"
@@ -136,10 +136,10 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
             }
             className={`p-2.5 rounded-xl transition-all shrink-0 ${
               !speechSupported || disabled
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed'
                 : isListening
-                ? 'bg-red-500 text-white shadow-md shadow-red-500/30 animate-pulse'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'
+                ? 'bg-red-500 text-white shadow-sm shadow-red-500/30 animate-pulse'
+                : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-slate-200 border border-slate-200 dark:border-transparent'
             }`}
           >
             {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -150,7 +150,7 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
             className={`p-2.5 rounded-xl transition-all shrink-0 ${
               hasText && !disabled
                 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/25 hover:shadow-md hover:shadow-indigo-600/30'
-                : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
             } ${sending ? 'animate-send-pop' : ''}`}
           >
             <Send className="w-4 h-4" />
@@ -158,15 +158,15 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
         </div>
 
         {showInterimBar && (
-          <div className="mt-1.5 px-2 text-xs italic text-gray-400 dark:text-gray-500">
+          <div className="mt-1.5 px-2 text-xs italic text-indigo-500 dark:text-indigo-400">
             {interimText ? `🎤 ${interimText}` : '🎤 Listening…'}
           </div>
         )}
 
         {hint && !showInterimBar && (
           <div className="flex items-center justify-center gap-1.5 mt-2">
-            <Sparkles className="w-3 h-3 text-gray-300 dark:text-gray-600" />
-            <p className="text-[10px] text-gray-400 dark:text-gray-500">{hint}</p>
+            <Sparkles className="w-3 h-3 text-indigo-300 dark:text-indigo-500/50" />
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">{hint}</p>
           </div>
         )}
       </div>

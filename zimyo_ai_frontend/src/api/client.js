@@ -50,3 +50,19 @@ export async function getSessionHistory(userId, sessionId) {
 export async function checkRedisHealth() {
   return request('/api/health/redis')
 }
+
+// ---- Config: CTC defaults ----
+export async function getCtcDefaults(userId) {
+  return request(`/config/ctc-defaults?userId=${encodeURIComponent(userId)}`)
+}
+
+export async function saveCtcDefaults(userId, values) {
+  return request('/config/ctc-defaults', {
+    method: 'PUT',
+    body: JSON.stringify({ userId, ...values }),
+  })
+}
+
+export async function getCtcDefaultsOptions(userId) {
+  return request(`/config/ctc-defaults/options?userId=${encodeURIComponent(userId)}`)
+}

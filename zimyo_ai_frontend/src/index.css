@@ -216,11 +216,6 @@ body {
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Subtle grid pattern adjusts in dark */
-.dark .bg-grid {
-  background-image: radial-gradient(circle, #1e293b 1px, transparent 1px);
-}
-
 /* Message bubble hover */
 .msg-bubble {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -255,11 +250,19 @@ body {
   background-clip: text;
 }
 
-/* Subtle grid pattern background — stays fixed while chat scrolls */
+/* Small dot pattern — clean AI portal backdrop, fixed while chat scrolls */
 .bg-grid {
-  background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-color: #fafbfd;
+  background-image:
+    radial-gradient(circle, rgba(99, 102, 241, 0.10) 1px, transparent 1.5px);
+  background-size: 20px 20px;
   background-attachment: fixed;
+}
+
+.dark .bg-grid {
+  background-color: #0b1220;
+  background-image:
+    radial-gradient(circle, rgba(99, 102, 241, 0.14) 1px, transparent 1.5px);
 }
 
 /* ─── TipTap rich-text editor surface ─── */

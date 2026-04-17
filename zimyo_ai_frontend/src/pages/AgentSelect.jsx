@@ -13,6 +13,7 @@ import {
   PieChart,
   Lock,
   Sparkles,
+  Settings as SettingsIcon,
 } from 'lucide-react'
 
 const AGENTS = [
@@ -102,6 +103,13 @@ export default function AgentSelect({ user, onLogout }) {
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{user?.userId}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 capitalize">{user?.role}</p>
             </div>
+            <button
+              onClick={() => navigate('/settings')}
+              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all active:scale-95"
+              title="Settings"
+            >
+              <SettingsIcon className="w-5 h-5" />
+            </button>
             <button
               onClick={onLogout}
               className="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 text-gray-400 hover:text-red-500 transition-all active:scale-95"
