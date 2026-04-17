@@ -228,36 +228,43 @@ export default function Chat({ user, onLogout }) {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Chat Header - Glassmorphism */}
-        <div className="glass border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+        {/* Chat Header */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700/50 px-5 py-3 flex items-center justify-between sticky top-0 z-10 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/agents')}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-all active:scale-95"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all active:scale-95"
               title="Back to agents"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-md`}>
-              <AgentIcon className="w-4.5 h-4.5 text-white" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-600/20 ring-1 ring-indigo-500/10">
+              <AgentIcon className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{config.title}</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{config.subtitle}</p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-[13px] font-medium text-slate-900 dark:text-slate-100 tracking-tight">{config.title}</h1>
+                <span className="px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-[9px] font-medium uppercase tracking-wider">AI</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">{config.subtitle}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
+              <span className="relative flex w-1.5 h-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-online-pulse" />
+                <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium">Online</span>
+            </div>
             <button
               onClick={toggleDark}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-yellow-400 transition-all active:scale-95"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-yellow-400 transition-all active:scale-95"
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-online-pulse" />
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Online</span>
-            </div>
           </div>
         </div>
 
@@ -266,7 +273,7 @@ export default function Chat({ user, onLogout }) {
           {showQuickActions ? (
             <QuickActions agentType={agentType} onAction={handleSend} />
           ) : (
-            <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+            <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
               {messages.map((msg, idx) => (
                 <ChatMessage
                   key={msg.id}

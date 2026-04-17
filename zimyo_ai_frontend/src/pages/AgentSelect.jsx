@@ -89,7 +89,7 @@ export default function AgentSelect({ user, onLogout }) {
       <header className="glass border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-zimyo-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-zimyo-600/20">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-sm shadow-indigo-600/20">
               <Bot className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -153,7 +153,7 @@ export default function AgentSelect({ user, onLogout }) {
                 )}
 
                 {/* Icon */}
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${agent.gradient} flex items-center justify-center mb-5 shadow-lg`}>
+                <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center mb-5 shadow-sm shadow-indigo-600/20">
                   <Icon className="w-7 h-7 text-white" />
                 </div>
 

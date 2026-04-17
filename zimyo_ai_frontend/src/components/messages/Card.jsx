@@ -52,7 +52,7 @@ export default function Card({ msg, onAction }) {
       {/* Profile header */}
       {header && (
         <div className="px-4 pb-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zimyo-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
             {header.avatarInitials || (header.name || '?')[0]}
           </div>
           <div className="flex-1 min-w-0">

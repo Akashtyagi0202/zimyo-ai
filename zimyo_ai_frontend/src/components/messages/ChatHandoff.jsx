@@ -12,7 +12,7 @@ export default function ChatHandoff({ msg, onAction }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full max-w-sm mt-2 animate-fade-in-scale">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-4 text-center">
+      <div className="bg-indigo-600 px-4 py-4 text-center">
         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2">
           <Headphones className="w-5 h-5 text-white" />
         </div>
@@ -23,7 +23,7 @@ export default function ChatHandoff({ msg, onAction }) {
       {/* Agent info */}
       {handoff.agent && (
         <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-100">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-zimyo-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
             {handoff.agent.avatar || (handoff.agent.name || '?')[0]}
           </div>
           <div>

@@ -47,7 +47,7 @@ export default function Split({ msg, onAction }) {
           <div className="flex-1 p-4 border-r border-gray-100">
             {/* Avatar + name */}
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zimyo-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
                 {summary.avatarInitials || (summary.name || '?')[0]}
               </div>
               <div>

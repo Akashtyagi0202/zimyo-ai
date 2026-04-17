@@ -149,7 +149,7 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
             disabled={!hasText || disabled}
             className={`p-2.5 rounded-xl transition-all shrink-0 ${
               hasText && !disabled
-                ? 'bg-gradient-to-r from-zimyo-600 to-indigo-600 hover:from-zimyo-700 hover:to-indigo-700 text-white shadow-md shadow-zimyo-600/25 hover:shadow-lg hover:shadow-zimyo-600/30'
+                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/25 hover:shadow-md hover:shadow-indigo-600/30'
                 : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
             } ${sending ? 'animate-send-pop' : ''}`}
           >

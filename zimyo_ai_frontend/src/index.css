@@ -255,10 +255,11 @@ body {
   background-clip: text;
 }
 
-/* Subtle grid pattern background */
+/* Subtle grid pattern background — stays fixed while chat scrolls */
 .bg-grid {
   background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
   background-size: 24px 24px;
+  background-attachment: fixed;
 }
 
 /* ─── TipTap rich-text editor surface ─── */
