@@ -26,6 +26,7 @@ import StatsCards from './messages/StatsCards'
 import SuccessBanner from './messages/SuccessBanner'
 import ErrorCard from './messages/ErrorCard'
 import Chips from './messages/Chips'
+import PdfPreview from './messages/PdfPreview'
 
 // Lazy imports — chart components (heavy, recharts ~400KB) + editor (TipTap ~120KB)
 const BarChart = lazy(() => import('./messages/BarChart'))
@@ -61,6 +62,9 @@ const RENDERERS = {
   // Status
   success:       SuccessBanner,
   error:         ErrorCard,
+
+  // Preview / hosted assets
+  pdf:           PdfPreview,
 
   // System
   chat_handoff:  ChatHandoff,

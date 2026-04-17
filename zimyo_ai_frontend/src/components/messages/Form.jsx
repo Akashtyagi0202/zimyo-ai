@@ -8,8 +8,11 @@
  *   checkbox, textarea, toggle, file, tags, phone, slider, rating, currency
  */
 
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { AlertCircle, Info, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, X } from 'lucide-react'
+
+// Lazy — TipTap is ~120KB. Loaded only when a form actually renders an editor field.
+const RichTextEditor = lazy(() => import('./_RichTextEditor'))
 
 const ALERT_STYLES = {
   info: { bg: 'bg-blue-50 border-blue-200 text-blue-800', icon: Info },
@@ -82,7 +85,7 @@ export default function Form({ msg, onAction }) {
   const ungroupedFields = fields.filter(f => !groupedFieldIds.has(f.id) && !f.hidden)
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full max-w-md mt-2 animate-fade-in-scale">
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full max-w-2xl mt-2 animate-fade-in-scale">
       {/* Header */}
       <div className="px-4 pt-4 pb-2">
         <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
@@ -200,6 +203,17 @@ function FieldInput({ field, value, onChange }) {
           rows={3}
           className={`${base} resize-none`}
         />
+      )
+
+    case 'editor':
+      return (
+        <Suspense fallback={<div className="border border-gray-200 rounded-lg h-32 bg-gray-50 animate-pulse" />}>
+          <RichTextEditor
+            value={value || ''}
+            onChange={onChange}
+            config={{ minHeight: 180, ...(field.config || {}), readOnly: field.disabled || field.readOnly }}
+          />
+        </Suspense>
       )
 
     case 'select':
