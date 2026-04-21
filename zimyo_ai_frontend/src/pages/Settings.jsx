@@ -11,11 +11,21 @@ import {
   CalendarRange,
   Briefcase,
   Gift,
+  Mail,
+  Users,
+  FileText,
+  GitBranch,
 } from 'lucide-react'
 import {
   getCtcDefaults,
   saveCtcDefaults,
   getCtcDefaultsOptions,
+  getOfferLetterDefaults,
+  saveOfferLetterDefaults,
+  getOfferLetterDefaultsOptions,
+  getWorkflow,
+  saveWorkflow,
+  getWorkflowOptions,
 } from '../api/client'
 
 const TOGGLES = [
@@ -118,6 +128,15 @@ export default function Settings({ user }) {
     bonus_plan_name: '',
   })
   const [options, setOptions] = useState({ ot_plans: [], bonus_plans: [] })
+  const [olValues, setOlValues] = useState({
+    default_template_id: '',
+    default_template_name: '',
+    default_cc: [],
+  })
+  const [olCcInput, setOlCcInput] = useState('')
+  const [olOptions, setOlOptions] = useState({ templates: [] })
+  const [wfValues, setWfValues] = useState({ id: '', name: '' })
+  const [wfOptions, setWfOptions] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState(null)
@@ -129,8 +148,14 @@ export default function Settings({ user }) {
     Promise.all([
       getCtcDefaults(user.userId),
       getCtcDefaultsOptions(user.userId).catch(() => ({ ot_plans: [], bonus_plans: [] })),
+      getOfferLetterDefaults(user.userId).catch(() => ({
+        default_template_id: '', default_template_name: '', default_cc: [],
+      })),
+      getOfferLetterDefaultsOptions(user.userId).catch(() => ({ templates: [] })),
+      getWorkflow(user.userId).catch(() => ({ id: '', name: '' })),
+      getWorkflowOptions(user.userId).catch(() => ({ workflows: [] })),
     ])
-      .then(([doc, opts]) => {
+      .then(([doc, opts, olDoc, olOpts, wfDoc, wfOpts]) => {
         if (cancelled) return
         setValues({
           esic_enabled: doc.esic_enabled ? 1 : 0,
@@ -147,6 +172,19 @@ export default function Settings({ user }) {
           ot_plans: opts?.ot_plans || [],
           bonus_plans: opts?.bonus_plans || [],
         })
+        const ccArr = Array.isArray(olDoc?.default_cc) ? olDoc.default_cc : []
+        setOlValues({
+          default_template_id:   String(olDoc?.default_template_id || ''),
+          default_template_name: String(olDoc?.default_template_name || ''),
+          default_cc:            ccArr,
+        })
+        setOlCcInput(ccArr.join(', '))
+        setOlOptions({ templates: olOpts?.templates || [] })
+        setWfValues({
+          id:   String(wfDoc?.id || ''),
+          name: String(wfDoc?.name || ''),
+        })
+        setWfOptions(wfOpts?.workflows || [])
       })
       .catch((e) => {
         if (cancelled) return
@@ -178,12 +216,60 @@ export default function Settings({ user }) {
     setFeedback(null)
   }
 
+  const pickWorkflow = (id) => {
+    const wf = wfOptions.find((w) => String(w.id) === String(id))
+    setWfValues({ id: id || '', name: wf?.name || '' })
+    setFeedback(null)
+  }
+
+  const pickOlTemplate = (id) => {
+    const tpl = olOptions.templates.find((t) => String(t.id) === String(id))
+    setOlValues((prev) => ({
+      ...prev,
+      default_template_id:   id || '',
+      default_template_name: tpl?.name || '',
+    }))
+    setFeedback(null)
+  }
+
+  const onOlCcInputChange = (raw) => {
+    setOlCcInput(raw)
+    // Parse on blur/save — don't thrash state on every keystroke.
+    setFeedback(null)
+  }
+
+  const parseCcList = (raw) => {
+    const seen = new Set()
+    const out = []
+    for (const p of String(raw || '').split(',')) {
+      const e = p.trim()
+      if (e && !seen.has(e.toLowerCase())) {
+        seen.add(e.toLowerCase())
+        out.push(e)
+      }
+    }
+    return out
+  }
+
   const handleSave = async () => {
     if (!user?.userId) return
     setSaving(true)
     setFeedback(null)
+    const ccList = parseCcList(olCcInput)
     try {
-      const saved = await saveCtcDefaults(user.userId, values)
+      const tasks = [
+        saveCtcDefaults(user.userId, values),
+        saveOfferLetterDefaults(user.userId, {
+          default_template_id:   olValues.default_template_id,
+          default_template_name: olValues.default_template_name,
+          default_cc:            ccList,
+        }),
+      ]
+      // Only persist workflow if one is selected — empty id is a no-op (keeps Redis as-is).
+      if (wfValues.id) {
+        tasks.push(saveWorkflow(user.userId, { id: wfValues.id, name: wfValues.name }))
+      }
+      const [saved, olSaved, wfSaved] = await Promise.all(tasks)
       setValues({
         esic_enabled: saved.esic_enabled ? 1 : 0,
         pf_enabled:   saved.pf_enabled   ? 1 : 0,
@@ -195,7 +281,17 @@ export default function Settings({ user }) {
         bonus_plan_id:   String(saved.bonus_plan_id || ''),
         bonus_plan_name: String(saved.bonus_plan_name || ''),
       })
-      setFeedback({ kind: 'ok', text: 'Defaults saved. They will apply to your next CTC computation.' })
+      const savedCc = Array.isArray(olSaved?.default_cc) ? olSaved.default_cc : []
+      setOlValues({
+        default_template_id:   String(olSaved?.default_template_id || ''),
+        default_template_name: String(olSaved?.default_template_name || ''),
+        default_cc:            savedCc,
+      })
+      setOlCcInput(savedCc.join(', '))
+      if (wfSaved && wfSaved.id) {
+        setWfValues({ id: String(wfSaved.id), name: String(wfSaved.name || '') })
+      }
+      setFeedback({ kind: 'ok', text: 'Defaults saved. They will apply to your next CTC and offer-letter flows.' })
     } catch (e) {
       setFeedback({ kind: 'err', text: e.message || 'Save failed' })
     } finally {
@@ -235,13 +331,13 @@ export default function Settings({ user }) {
       <main className="max-w-4xl mx-auto px-6 py-10 pb-24">
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-zimyo-50 dark:bg-zimyo-900/30 border border-zimyo-200 dark:border-zimyo-700/40 rounded-full text-xs font-medium text-zimyo-600 dark:text-zimyo-300 mb-3">
-            <SettingsIcon className="w-3.5 h-3.5" />
-            CTC compute defaults
+            <GitBranch className="w-3.5 h-3.5" />
+            Active onboarding workflow
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Your saved defaults</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Workflow selection</h2>
           <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
-            These apply automatically when you run "compute CTC". Override any of them for a single
-            computation via <em>Edit options</em> on the review card.
+            All onboarding flows (candidate list, details, CTC, offer letter) run against this workflow.
+            You can also change it from chat by picking a workflow when the agent asks.
           </p>
         </div>
 
@@ -252,6 +348,54 @@ export default function Settings({ user }) {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Active workflow */}
+            <section className="rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+              <div className="flex items-start gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <GitBranch className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Active workflow</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {wfValues.id
+                      ? <>Currently running against <strong className="text-gray-700 dark:text-gray-200">{wfValues.name || `Workflow ${wfValues.id}`}</strong>.</>
+                      : 'No workflow saved yet — the agent will ask you once on the first onboarding query.'}
+                  </p>
+                </div>
+              </div>
+              <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Pick workflow
+              </label>
+              <select
+                value={wfValues.id}
+                onChange={(e) => pickWorkflow(e.target.value)}
+                disabled={saving}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-zimyo-500/50"
+              >
+                <option value="">— Select a workflow —</option>
+                {wfOptions.map((w) => (
+                  <option key={w.id} value={w.id}>{w.name || `Workflow ${w.id}`}</option>
+                ))}
+              </select>
+              {wfOptions.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">
+                  No workflows returned by Zimyo. Check if your admin has any configured under Onboarding.
+                </p>
+              )}
+            </section>
+
+            <div className="pt-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zimyo-50 dark:bg-zimyo-900/30 border border-zimyo-200 dark:border-zimyo-700/40 rounded-full text-xs font-medium text-zimyo-600 dark:text-zimyo-300 mb-3">
+                <SettingsIcon className="w-3.5 h-3.5" />
+                CTC compute defaults
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Your saved defaults</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
+                These apply automatically when you run "compute CTC". Override any of them for a single
+                computation via <em>Edit options</em> on the review card.
+              </p>
+            </div>
+
             {/* Applicable-from strategy */}
             <section className="rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
               <div className="flex items-start gap-3 mb-4">
@@ -339,6 +483,75 @@ export default function Settings({ user }) {
                   emptyHint="No Bonus plans available — run a CTC compute first so I can pick up your org's plans."
                 />
               </div>
+            </section>
+
+            {/* ═══════════════════════════════════════════════════ */}
+            {/* OFFER LETTER DEFAULTS                                 */}
+            {/* ═══════════════════════════════════════════════════ */}
+            <div className="pt-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zimyo-50 dark:bg-zimyo-900/30 border border-zimyo-200 dark:border-zimyo-700/40 rounded-full text-xs font-medium text-zimyo-600 dark:text-zimyo-300 mb-3">
+                <Mail className="w-3.5 h-3.5" />
+                Offer letter defaults
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Your saved defaults</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
+                These apply automatically when you run "send offer letter". Override any of them for a single
+                send on the editor / CC step.
+              </p>
+            </div>
+
+            {/* Default template */}
+            <section className="rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+              <div className="flex items-start gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Default offer template</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    When set, I'll skip the template chip pick and open the editor with this template pre-loaded.
+                  </p>
+                </div>
+              </div>
+              <Select
+                icon={FileText}
+                label="Offer template"
+                value={olValues.default_template_id}
+                onChange={pickOlTemplate}
+                options={olOptions.templates}
+                disabled={saving}
+                emptyHint="No offer templates available — configure one under Onboarding → Templates first."
+              />
+            </section>
+
+            {/* Default CC recipients */}
+            <section className="rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+              <div className="flex items-start gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Default CC recipients</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    These emails get pre-selected in the CC step on every send. Comma-separated.
+                  </p>
+                </div>
+              </div>
+              <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                CC emails
+              </label>
+              <textarea
+                value={olCcInput}
+                onChange={(e) => onOlCcInputChange(e.target.value)}
+                onBlur={(e) => setOlCcInput(parseCcList(e.target.value).join(', '))}
+                disabled={saving}
+                rows={2}
+                placeholder="hr@zimyo.com, manager@zimyo.com"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-zimyo-500/50 resize-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Tip: duplicates (case-insensitive) are removed on save.
+              </p>
             </section>
 
             {feedback && (

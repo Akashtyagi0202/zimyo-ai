@@ -66,3 +66,35 @@ export async function saveCtcDefaults(userId, values) {
 export async function getCtcDefaultsOptions(userId) {
   return request(`/config/ctc-defaults/options?userId=${encodeURIComponent(userId)}`)
 }
+
+// ---- Config: Offer-letter defaults ----
+export async function getOfferLetterDefaults(userId) {
+  return request(`/config/offer-letter-defaults?userId=${encodeURIComponent(userId)}`)
+}
+
+export async function saveOfferLetterDefaults(userId, values) {
+  return request('/config/offer-letter-defaults', {
+    method: 'PUT',
+    body: JSON.stringify({ userId, ...values }),
+  })
+}
+
+export async function getOfferLetterDefaultsOptions(userId) {
+  return request(`/config/offer-letter-defaults/options?userId=${encodeURIComponent(userId)}`)
+}
+
+// ---- Config: Active onboarding workflow ----
+export async function getWorkflow(userId) {
+  return request(`/config/workflow?userId=${encodeURIComponent(userId)}`)
+}
+
+export async function saveWorkflow(userId, { id, name }) {
+  return request('/config/workflow', {
+    method: 'PUT',
+    body: JSON.stringify({ userId, id: String(id || ''), name: name || '' }),
+  })
+}
+
+export async function getWorkflowOptions(userId) {
+  return request(`/config/workflow/options?userId=${encodeURIComponent(userId)}`)
+}

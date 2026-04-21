@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { sendMessage, createSession, getSessions, getSessionHistory } from '../api/client'
+import { sendMessage, createSession, getSessions, getSessionHistory, getWorkflow } from '../api/client'
 import Sidebar from '../components/Sidebar'
 import ChatMessage, { TypingIndicator } from '../components/ChatMessage'
 import ChatInput from '../components/ChatInput'
 import QuickActions from '../components/QuickActions'
 import Toast from '../components/Toast'
-import { ArrowLeft, CalendarDays, FileSearch, UserPlus, Sun, Moon } from 'lucide-react'
+import { ArrowLeft, CalendarDays, FileSearch, UserPlus, Sun, Moon, GitBranch } from 'lucide-react'
 import useDarkMode from '../hooks/useDarkMode'
 
 /**
@@ -70,6 +70,7 @@ export default function Chat({ user, onLogout }) {
   const [loading, setLoading] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [toast, setToast] = useState(null)
+  const [activeWorkflow, setActiveWorkflow] = useState(null)
   const messagesEndRef = useRef(null)
   const initialized = useRef(false)
 
@@ -82,6 +83,18 @@ export default function Chat({ user, onLogout }) {
     initialized.current = true
     loadSessions()
   }, [])
+
+  useEffect(() => {
+    if (agentType !== 'onboarding' || !user?.userId) return
+    let cancelled = false
+    getWorkflow(user.userId)
+      .then((wf) => {
+        if (cancelled) return
+        setActiveWorkflow(wf && wf.id ? wf : null)
+      })
+      .catch(() => { if (!cancelled) setActiveWorkflow(null) })
+    return () => { cancelled = true }
+  }, [agentType, user?.userId, messages.length])
 
   const loadSessions = async () => {
     try {
@@ -251,6 +264,24 @@ export default function Chat({ user, onLogout }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {agentType === 'onboarding' && (
+              <button
+                onClick={() => navigate('/settings')}
+                title={activeWorkflow ? 'Change workflow in Settings' : 'Pick a workflow in Settings'}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all active:scale-95 ${
+                  activeWorkflow
+                    ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20'
+                    : 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20'
+                }`}
+              >
+                <GitBranch className="w-3 h-3" />
+                <span className="text-[10px] font-medium max-w-[160px] truncate">
+                  {activeWorkflow
+                    ? (activeWorkflow.name || `Workflow ${activeWorkflow.id}`)
+                    : 'No workflow set'}
+                </span>
+              </button>
+            )}
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
               <span className="relative flex w-1.5 h-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-online-pulse" />

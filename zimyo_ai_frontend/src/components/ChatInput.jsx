@@ -1,18 +1,21 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Sparkles, Mic, MicOff } from 'lucide-react'
+import useDeepgramSTT from '../hooks/useDeepgramSTT'
 
 export default function ChatInput({ onSend, disabled, placeholder, hint, onError }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [interimText, setInterimText] = useState('')
   const textareaRef = useRef(null)
-  const recognitionRef = useRef(null)
 
-  const SpeechRecognitionCtor =
-    typeof window !== 'undefined' &&
-    (window.SpeechRecognition || window.webkitSpeechRecognition)
-  const speechSupported = Boolean(SpeechRecognitionCtor)
+  const handleFinalChunk = useCallback((chunk) => {
+    if (!chunk) return
+    setText((prev) => (prev ? prev + ' ' : '') + chunk)
+  }, [])
+
+  const { isListening, interimText, startListening, stopListening } = useDeepgramSTT({
+    onFinal: handleFinalChunk,
+    onError,
+  })
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -21,55 +24,10 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
     }
   }, [text])
 
-  useEffect(() => {
-    if (!speechSupported) return
-    const rec = new SpeechRecognitionCtor()
-    rec.lang = 'en-IN'
-    rec.continuous = true
-    rec.interimResults = true
-
-    rec.onresult = (e) => {
-      let interim = ''
-      let finalChunk = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const r = e.results[i]
-        if (r.isFinal) finalChunk += r[0].transcript
-        else interim += r[0].transcript
-      }
-      if (finalChunk) {
-        setText((prev) => (prev ? prev + ' ' : '') + finalChunk.trim())
-        setInterimText('')
-      } else {
-        setInterimText(interim)
-      }
-    }
-
-    rec.onerror = (e) => {
-      setIsListening(false)
-      setInterimText('')
-      if (e.error === 'not-allowed' || e.error === 'permission-denied' || e.error === 'service-not-allowed') {
-        onError?.({ type: 'error', message: 'Microphone access do browser settings mein' })
-      } else if (e.error === 'no-speech') {
-        onError?.({ type: 'info', message: 'Kuch bola nahi — dobara try karo' })
-      } else if (e.error && e.error !== 'aborted') {
-        onError?.({ type: 'error', message: `Voice error: ${e.error}` })
-      }
-    }
-
-    rec.onend = () => {
-      setIsListening(false)
-      setInterimText('')
-    }
-
-    recognitionRef.current = rec
-    return () => {
-      try { rec.abort() } catch (_) { /* ignore */ }
-    }
-  }, [speechSupported])
-
   const handleSend = () => {
     const trimmed = text.trim()
     if (!trimmed || disabled) return
+    if (isListening) stopListening()
     setSending(true)
     onSend(trimmed)
     setText('')
@@ -80,23 +38,8 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
   }
 
   const toggleMic = () => {
-    if (!speechSupported) {
-      onError?.({ type: 'warning', message: 'Voice input is not supported in this browser' })
-      return
-    }
-    const rec = recognitionRef.current
-    if (!rec) return
-    if (isListening) {
-      try { rec.stop() } catch (_) { /* ignore */ }
-    } else {
-      try {
-        rec.start()
-        setIsListening(true)
-      } catch (_) {
-        // InvalidStateError: already started — flip state back just in case
-        setIsListening(false)
-      }
-    }
+    if (isListening) stopListening()
+    else startListening()
   }
 
   const handleKeyDown = (e) => {
@@ -126,16 +69,10 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
           <button
             type="button"
             onClick={toggleMic}
-            disabled={disabled || !speechSupported}
-            title={
-              !speechSupported
-                ? 'Voice not supported in this browser'
-                : isListening
-                ? 'Stop recording'
-                : 'Start voice input (Hindi + English)'
-            }
+            disabled={disabled}
+            title={isListening ? 'Stop recording' : 'Start voice input (Hinglish)'}
             className={`p-2.5 rounded-xl transition-all shrink-0 ${
-              !speechSupported || disabled
+              disabled
                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed'
                 : isListening
                 ? 'bg-red-500 text-white shadow-sm shadow-red-500/30 animate-pulse'
