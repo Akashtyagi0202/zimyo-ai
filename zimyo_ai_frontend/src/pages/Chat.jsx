@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { sendMessage, createSession, getSessions, getSessionHistory, getWorkflow } from '../api/client'
+import { sendMessageStream, createSession, getSessions, getSessionHistory, getWorkflow, getPolicyStatus } from '../api/client'
 import Sidebar from '../components/Sidebar'
 import ChatMessage, { TypingIndicator } from '../components/ChatMessage'
 import ChatInput from '../components/ChatInput'
@@ -14,6 +14,54 @@ import useDarkMode from '../hooks/useDarkMode'
  * Button clicks send JSON like `{"action":"submit_leave"}` which is ugly to show.
  * Plain text / chip selections pass through unchanged.
  */
+/**
+ * Policy-agent readiness chip for the chat header. Rendered only on the policy page.
+ * Shows the current ingestion state (polled from /policy-status) so the user
+ * knows whether to expect real answers or "try again in a minute".
+ */
+function PolicyStatusChip({ status, processed, total, count }) {
+  const st = status || 'checking'
+  const styleByStatus = {
+    checking:   'bg-slate-50 dark:bg-slate-500/10 border-slate-100 dark:border-slate-500/20 text-slate-600 dark:text-slate-400',
+    completed:  'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300',
+    processing: 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 text-amber-700 dark:text-amber-300 animate-pulse',
+    failed:     'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 text-rose-700 dark:text-rose-300',
+    idle:       'bg-slate-50 dark:bg-slate-500/10 border-slate-100 dark:border-slate-500/20 text-slate-600 dark:text-slate-400',
+    unknown:    'bg-slate-50 dark:bg-slate-500/10 border-slate-100 dark:border-slate-500/20 text-slate-600 dark:text-slate-400',
+  }
+  const labelByStatus = {
+    checking:   'Checking policies…',
+    completed:  count ? `Policies ready · ${count}` : 'Policies ready',
+    processing: total ? `Indexing ${processed}/${total}` : 'Indexing policies…',
+    failed:     'Policy indexing failed',
+    idle:       'Policies not loaded',
+    unknown:    'Policy status unknown',
+  }
+  return (
+    <div
+      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${styleByStatus[st] || styleByStatus.checking}`}
+      title={st === 'failed' ? 'Re-login with loadPolicies=true' : undefined}
+    >
+      <FileSearch className="w-3 h-3" />
+      <span className="text-[10px] font-medium max-w-[180px] truncate">
+        {labelByStatus[st] || labelByStatus.checking}
+      </span>
+    </div>
+  )
+}
+
+/**
+ * Convert a LangGraph node name into a short human label for the typing indicator.
+ * Backend may also pass an explicit `label` which takes precedence.
+ */
+function nodeLabel(node) {
+  if (!node) return 'Thinking…'
+  return node
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim() + '…'
+}
+
 function getDisplayText(text) {
   if (typeof text !== 'string' || !text.startsWith('{')) return text
   try {
@@ -68,9 +116,11 @@ export default function Chat({ user, onLogout }) {
   const [activeSessionId, setActiveSessionId] = useState(null)
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
+  const [phaseLabel, setPhaseLabel] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [toast, setToast] = useState(null)
   const [activeWorkflow, setActiveWorkflow] = useState(null)
+  const [policyStatus, setPolicyStatus] = useState(null)
   const messagesEndRef = useRef(null)
   const initialized = useRef(false)
 
@@ -95,6 +145,28 @@ export default function Chat({ user, onLogout }) {
       .catch(() => { if (!cancelled) setActiveWorkflow(null) })
     return () => { cancelled = true }
   }, [agentType, user?.userId, messages.length])
+
+  // Policy agent: poll ingestion status so user knows when RAG is ready.
+  // Stops polling once status terminates (completed/failed).
+  useEffect(() => {
+    if (agentType !== 'policy' || !user?.userId) return
+    let cancelled = false
+    let timer = null
+
+    const tick = async () => {
+      try {
+        const s = await getPolicyStatus(user.userId)
+        if (cancelled) return
+        setPolicyStatus(s)
+        const terminal = s?.status === 'completed' || s?.status === 'failed'
+        if (!terminal) timer = setTimeout(tick, 5000)
+      } catch {
+        if (!cancelled) setPolicyStatus({ status: 'unknown' })
+      }
+    }
+    tick()
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
+  }, [agentType, user?.userId])
 
   const loadSessions = async () => {
     try {
@@ -184,37 +256,117 @@ export default function Chat({ user, onLogout }) {
       }
       setMessages((prev) => [...prev, userMsg])
       setLoading(true)
+      setPhaseLabel('Samajh raha hoon…')
+
+      // Stable id for the streaming bubble; created lazily on first token/ui_partial.
+      const streamId = `stream-${Date.now()}`
+      let streamingCreated = false
+
+      // Idempotent: create an empty streaming bubble on first signal, drop typing.
+      // Content updates (text/data) happen in the caller's follow-up setState so
+      // React batching doesn't cause duplication.
+      const ensureStreamBubble = () => {
+        if (streamingCreated) return
+        streamingCreated = true
+        setLoading(false)
+        setPhaseLabel('')
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: streamId,
+            role: 'assistant',
+            text: '',
+            timestamp: new Date().toISOString(),
+            streaming: true,
+          },
+        ])
+      }
 
       try {
-        const result = await sendMessage({
-          userId: user.userId,
-          message: text,
-          sessionId,
-        })
-        const botMsg = {
-          id: `bot-${Date.now()}`,
-          role: 'assistant',
-          text: result.agentMessage || result.reply || result.response || 'No response received.',
-          timestamp: new Date().toISOString(),
-          resources: result.resources || null,
-          data: result.ui || result.data || null,
-        }
-        setMessages((prev) => [...prev, botMsg])
+        await sendMessageStream(
+          { userId: user.userId, message: text, sessionId },
+          {
+            onPhase: (p) => {
+              setPhaseLabel(p.label || nodeLabel(p.node))
+            },
+            onUiPartial: (partial) => {
+              ensureStreamBubble()
+              setMessages((prev) =>
+                prev.map((m) => (m.id === streamId ? { ...m, data: partial } : m))
+              )
+            },
+            onToken: ({ t }) => {
+              if (!t) return
+              ensureStreamBubble()
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamId ? { ...m, text: (m.text || '') + t } : m
+                )
+              )
+            },
+            onFinal: (result) => {
+              const finalText =
+                result.agentMessage || result.reply || result.response || 'No response received.'
+              const finalData = result.ui || result.data || null
+              const resources = result.resources || null
 
-        // Show toast if backend sent one
-        if (result.toast) {
-          setToast(result.toast)
-        }
+              if (streamingCreated) {
+                // Replace the streaming bubble's payload with the final one.
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === streamId
+                      ? {
+                          ...m,
+                          text: finalText,
+                          data: finalData,
+                          resources,
+                          streaming: false,
+                        }
+                      : m
+                  )
+                )
+              } else {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: `bot-${Date.now()}`,
+                    role: 'assistant',
+                    text: finalText,
+                    timestamp: new Date().toISOString(),
+                    resources,
+                    data: finalData,
+                  },
+                ])
+              }
+
+              if (result.toast) setToast(result.toast)
+            },
+            onError: (err) => {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `err-${Date.now()}`,
+                  role: 'assistant',
+                  text: `Error: ${err.message || 'Something went wrong.'}`,
+                  timestamp: new Date().toISOString(),
+                },
+              ])
+            },
+          }
+        )
       } catch (err) {
-        const errorMsg = {
-          id: `err-${Date.now()}`,
-          role: 'assistant',
-          text: `Error: ${err.message || 'Something went wrong. Please try again.'}`,
-          timestamp: new Date().toISOString(),
-        }
-        setMessages((prev) => [...prev, errorMsg])
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            role: 'assistant',
+            text: `Error: ${err.message || 'Something went wrong. Please try again.'}`,
+            timestamp: new Date().toISOString(),
+          },
+        ])
       } finally {
         setLoading(false)
+        setPhaseLabel('')
       }
     },
     [activeSessionId, loading, user.userId]
@@ -264,6 +416,14 @@ export default function Chat({ user, onLogout }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {agentType === 'policy' && (
+              <PolicyStatusChip
+                status={policyStatus?.status}
+                processed={policyStatus?.processed ?? 0}
+                total={policyStatus?.total ?? 0}
+                count={policyStatus?.policies_count}
+              />
+            )}
             {agentType === 'onboarding' && (
               <button
                 onClick={() => navigate('/settings')}
@@ -313,7 +473,7 @@ export default function Chat({ user, onLogout }) {
                   onActionSelect={handleSend}
                 />
               ))}
-              {loading && <TypingIndicator />}
+              {loading && <TypingIndicator label={phaseLabel} />}
               <div ref={messagesEndRef} />
             </div>
           )}

@@ -214,17 +214,24 @@ function FormattedText({ text, isUser }) {
   )
 }
 
-export function TypingIndicator() {
+export function TypingIndicator({ label }) {
   return (
     <div className="flex gap-2.5 items-start animate-slide-up">
       <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
         <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
       </div>
       <div className="bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 rounded-lg rounded-tl-none px-4 py-3">
-        <div className="flex gap-1.5 items-center">
-          <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
-          <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
-          <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
+        <div className="flex gap-2 items-center">
+          <div className="flex gap-1.5 items-center">
+            <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
+            <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
+            <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-indigo-500 rounded-full typing-dot" />
+          </div>
+          {label && (
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 transition-opacity">
+              {label}
+            </span>
+          )}
         </div>
       </div>
     </div>

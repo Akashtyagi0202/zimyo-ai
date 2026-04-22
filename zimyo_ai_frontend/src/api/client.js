@@ -19,7 +19,7 @@ export async function login({ userId, role, userToken, loadPolicies = true }) {
 }
 
 export async function getPolicyStatus(userId) {
-  return request(`/policy-status/${userId}`)
+  return request(`/policy-status/${encodeURIComponent(userId)}`)
 }
 
 // ---- Chat ----
@@ -28,6 +28,64 @@ export async function sendMessage({ userId, message, sessionId, context }) {
     method: 'POST',
     body: JSON.stringify({ userId, message, sessionId, context }),
   })
+}
+
+/**
+ * SSE-streamed chat. Emits:
+ *   onPhase({ node, label? })        — per orchestration/LangGraph-node tick
+ *   onUiPartial(UiPayload)           — skeleton / partial UI ahead of final
+ *   onToken({ t })                   — per-chunk LLM output (opt-in nodes only)
+ *   onFinal(ChatResponseDict)        — once; resolves the promise after it runs
+ *   onError({ message })             — terminal error event from server
+ * Throws on network / non-2xx.
+ */
+export async function sendMessageStream(
+  { userId, message, sessionId, context },
+  { onPhase, onUiPartial, onToken, onFinal, onError, signal } = {}
+) {
+  const res = await fetch(`${BASE_URL}/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, message, sessionId, context }),
+    signal,
+  })
+  if (!res.ok || !res.body) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail || `Stream failed: ${res.status}`)
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let boundary
+    while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+      const raw = buffer.slice(0, boundary)
+      buffer = buffer.slice(boundary + 2)
+
+      let event = 'message'
+      const dataLines = []
+      for (const line of raw.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim()
+        else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart())
+      }
+      if (dataLines.length === 0) continue
+
+      let parsed
+      try { parsed = JSON.parse(dataLines.join('\n')) } catch { continue }
+
+      if (event === 'phase') onPhase?.(parsed)
+      else if (event === 'ui_partial') onUiPartial?.(parsed)
+      else if (event === 'token') onToken?.(parsed)
+      else if (event === 'final') { onFinal?.(parsed); return }
+      else if (event === 'error') { onError?.(parsed); return }
+    }
+  }
 }
 
 // ---- Sessions ----

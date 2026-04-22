@@ -1,61 +1,31 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login, getPolicyStatus } from '../api/client'
-import { Bot, User, KeyRound, Shield, Loader2, CheckCircle2, FileText, AlertCircle, Sparkles } from 'lucide-react'
+import { login } from '../api/client'
+import { Bot, User, KeyRound, Shield, Loader2, AlertCircle, Sparkles } from 'lucide-react'
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate()
   const [form, setForm] = useState({ userId: '', role: 'employee', userToken: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [policyStatus, setPolicyStatus] = useState(null)
-  const pollRef = useRef(null)
 
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
-  }, [])
-
-  const pollPolicyStatus = (userId) => {
-    pollRef.current = setInterval(async () => {
-      try {
-        const status = await getPolicyStatus(userId)
-        setPolicyStatus(status)
-        if (status.status === 'completed' || status.status === 'failed' || status.status === 'skipped') {
-          clearInterval(pollRef.current)
-          if (status.status === 'completed' || status.status === 'skipped') {
-            setTimeout(() => {
-              onLogin({ userId, role: form.role })
-              navigate('/agents')
-            }, 800)
-          }
-        }
-      } catch {
-        // ignore polling errors
-      }
-    }, 1500)
-  }
-
+  // Login is fire-and-forget for policy ingestion: backend spawns the
+  // background task; the chat-header chip on /chat/policy shows status.
+  // No polling here — keeps the login path fast.
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    setPolicyStatus(null)
 
     try {
-      const result = await login({
+      await login({
         userId: form.userId,
         role: form.role,
         userToken: form.userToken,
-        loadPolicies: false,
+        loadPolicies: true,
       })
-
-      // Login success — skip policy polling, go straight to chat
-      if (result.status === 'success' || result.message || result) {
-        onLogin({ userId: form.userId, role: form.role })
-        navigate('/agents')
-      }
+      onLogin({ userId: form.userId, role: form.role })
+      navigate('/agents')
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.')
       setLoading(false)
@@ -86,13 +56,6 @@ export default function Login({ onLogin }) {
 
         {/* Login Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-white/20 dark:border-gray-700">
-          {/* Policy Loading State */}
-          {policyStatus && (
-            <PolicyLoadingCard status={policyStatus} />
-          )}
-
-          {/* Login Form */}
-          {!policyStatus && (
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
                 <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm animate-slide-up">
@@ -165,7 +128,6 @@ export default function Login({ onLogin }) {
                 )}
               </button>
             </form>
-          )}
         </div>
 
         <p className="text-center text-blue-300/60 text-xs mt-6 flex items-center justify-center gap-1">
@@ -173,63 +135,6 @@ export default function Login({ onLogin }) {
           Powered by Zimyo AI Assistant
         </p>
       </div>
-    </div>
-  )
-}
-
-function PolicyLoadingCard({ status }) {
-  const isComplete = status.status === 'completed' || status.status === 'skipped'
-  const isFailed = status.status === 'failed'
-  const progress = status.total > 0 ? Math.round((status.processed / status.total) * 100) : 0
-
-  return (
-    <div className="space-y-4 py-2 animate-fade-in">
-      <div className="flex items-center gap-3">
-        {isComplete ? (
-          <CheckCircle2 className="w-6 h-6 text-green-500" />
-        ) : isFailed ? (
-          <AlertCircle className="w-6 h-6 text-red-500" />
-        ) : (
-          <Loader2 className="w-6 h-6 text-zimyo-600 animate-spin" />
-        )}
-        <div>
-          <p className="font-semibold text-gray-900 dark:text-gray-100">
-            {isComplete ? 'Ready!' : isFailed ? 'Error' : 'Setting up your session...'}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {isComplete
-              ? 'Policies loaded. Redirecting...'
-              : isFailed
-                ? 'Failed to load policies. Please retry.'
-                : 'Loading company policies & data...'}
-          </p>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      {!isComplete && !isFailed && (
-        <div className="space-y-2">
-          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-zimyo-600 to-indigo-600 rounded-full transition-all duration-500"
-              style={{ width: `${Math.max(progress, 10)}%` }}
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-            <FileText className="w-3 h-3" />
-            <span>
-              {status.processed}/{status.total || '...'} policies processed
-            </span>
-          </div>
-        </div>
-      )}
-
-      {isComplete && (
-        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl text-green-700 text-sm">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{status.policies_count || 0} policies loaded successfully</span>
-        </div>
-      )}
     </div>
   )
 }
