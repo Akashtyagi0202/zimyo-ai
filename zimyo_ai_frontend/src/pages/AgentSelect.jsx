@@ -84,106 +84,119 @@ export default function AgentSelect({ user, onLogout }) {
     navigate(agent.route)
   }
 
+  const fullName = (user?.name || '').trim()
+  const firstName = fullName ? fullName.split(/\s+/)[0] : ''
+  const headerLabel = fullName || user?.userId || ''
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 bg-grid">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900">
       {/* Header */}
-      <header className="glass border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="glass border-b border-gray-200/60 dark:border-gray-800/60 sticky top-0 z-10 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-sm shadow-indigo-600/20">
-              <Bot className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/25">
+              <Bot className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Zimyo AI</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Choose your assistant</p>
+              <h1 className="text-base font-semibold tracking-tight text-gray-900 dark:text-gray-100">Zimyo AI</h1>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">HR Assistant</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{user?.userId}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 capitalize">{user?.role}</p>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{headerLabel}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 capitalize">
+                {user?.designation ? `${user.designation} · ${user.role}` : user?.role}
+              </p>
             </div>
-            <button
-              onClick={() => navigate('/settings')}
-              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all active:scale-95"
-              title="Settings"
-            >
-              <SettingsIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={onLogout}
-              className="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 text-gray-400 hover:text-red-500 transition-all active:scale-95"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1 border-l border-gray-200 dark:border-gray-800 pl-3">
+              <button
+                onClick={() => navigate('/settings')}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 transition-all active:scale-95"
+                title="Settings"
+              >
+                <SettingsIcon className="w-[18px] h-[18px]" />
+              </button>
+              <button
+                onClick={onLogout}
+                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-gray-500 hover:text-red-600 transition-all active:scale-95"
+                title="Logout"
+              >
+                <LogOut className="w-[18px] h-[18px]" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main */}
-      <main className="max-w-6xl mx-auto px-6 py-12">
+      <main className="max-w-6xl mx-auto px-6 py-16">
         {/* Welcome */}
-        <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-zimyo-50 dark:bg-zimyo-900/30 border border-zimyo-200 dark:border-zimyo-700/40 rounded-full text-xs font-medium text-zimyo-600 dark:text-zimyo-300 mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
+        <div className="mb-14 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-full text-[11px] font-medium text-gray-600 dark:text-gray-300 mb-5 shadow-sm">
+            <Sparkles className="w-3 h-3 text-indigo-500" />
             AI-Powered HR Assistant
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            <span className="animate-wave">👋</span> Namaste! <span className="gradient-text">Kya help chahiye?</span>
+          <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 leading-[1.1]">
+            {firstName ? <>Welcome back, <span className="gradient-text">{firstName}</span></> : <>Welcome to <span className="gradient-text">Zimyo AI</span></>}
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-3 text-base">
-            Select an AI agent to get started
+          <p className="text-gray-500 dark:text-gray-400 mt-3 text-base max-w-xl">
+            Choose an assistant to get started. Each one is trained for a specific workflow.
           </p>
         </div>
 
         {/* Agent Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {AGENTS.map((agent, index) => {
             const Icon = agent.icon
             return (
               <div
                 key={agent.id}
                 onClick={() => handleSelect(agent)}
-                className={`animate-stagger relative rounded-2xl border-2 bg-white dark:bg-gray-800 p-6 transition-all ${
+                className={`animate-stagger group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 p-6 transition-all duration-300 ${
                   agent.available
-                    ? `${agent.borderColor} cursor-pointer card-hover ${agent.shadowColor}`
-                    : 'border-gray-200 dark:border-gray-700 opacity-70 cursor-not-allowed'
+                    ? 'cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-900/5 dark:hover:shadow-black/20 hover:border-gray-300 dark:hover:border-gray-700'
+                    : 'opacity-60 cursor-not-allowed'
                 }`}
-                style={{ animationDelay: `${index * 100}ms` }}
+                style={{ animationDelay: `${index * 80}ms` }}
               >
+                {/* Gradient accent bar */}
+                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${agent.gradient} opacity-80`} />
+
                 {/* Coming Soon Badge */}
                 {!agent.available && (
-                  <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 bg-gray-100 rounded-full">
+                  <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-full">
                     <Lock className="w-3 h-3 text-gray-500" />
-                    <span className="text-xs font-semibold text-gray-500">Coming Soon</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Soon</span>
                   </div>
                 )}
 
                 {/* Icon */}
-                <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center mb-5 shadow-sm shadow-indigo-600/20">
-                  <Icon className="w-7 h-7 text-white" />
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${agent.gradient} flex items-center justify-center mb-5 shadow-lg shadow-gray-900/10`}>
+                  <Icon className="w-6 h-6 text-white" strokeWidth={2.25} />
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {agent.title}
-                  <span className="text-sm font-medium text-gray-400 dark:text-gray-500 ml-2">{agent.subtitle}</span>
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                    {agent.title}
+                  </h3>
+                  <span className="text-xs font-medium text-gray-400 dark:text-gray-500">{agent.subtitle}</span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed line-clamp-2">
                   {agent.description}
                 </p>
 
                 {/* Feature chips */}
-                <div className="flex flex-wrap gap-2 mt-5">
+                <div className="flex flex-wrap gap-1.5 mt-5">
                   {agent.features.map((feat) => {
                     const FeatIcon = feat.icon
                     return (
                       <span
                         key={feat.label}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium ${
                           agent.available
-                            ? `${agent.bgLight} text-gray-700 dark:bg-gray-700/60 dark:text-gray-200`
+                            ? 'bg-gray-50 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-700/60'
                             : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                         }`}
                       >
@@ -196,9 +209,9 @@ export default function AgentSelect({ user, onLogout }) {
 
                 {/* CTA */}
                 {agent.available && (
-                  <div className="flex items-center gap-2 mt-6 text-sm font-semibold text-zimyo-600 dark:text-zimyo-400 group">
-                    <span>Start Chat</span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <div className="flex items-center justify-between mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Open assistant</span>
+                    <ArrowRight className="w-4 h-4 text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-gray-900 dark:group-hover:text-gray-100" />
                   </div>
                 )}
               </div>

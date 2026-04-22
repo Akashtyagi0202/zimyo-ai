@@ -18,13 +18,19 @@ export default function Login({ onLogin }) {
     setLoading(true)
 
     try {
-      await login({
+      const res = await login({
         userId: form.userId,
         role: form.role,
         userToken: form.userToken,
         loadPolicies: true,
       })
-      onLogin({ userId: form.userId, role: form.role })
+      onLogin({
+        userId: form.userId,
+        role: form.role,
+        name: res?.name || '',
+        department: res?.department || '',
+        designation: res?.designation || '',
+      })
       navigate('/agents')
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.')
