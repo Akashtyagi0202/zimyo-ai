@@ -126,28 +126,28 @@ const POLICY_ACTIONS = [
 const ONBOARDING_ACTIONS = [
   {
     label: 'Compute CTC',
-    message: 'Test LOI Explore ka CTC compute kro',
+    message: 'Compute CTC for Test LOI Explore',
     icon: Calculator,
     color: 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 hover:border-amber-300',
     iconBg: 'bg-amber-100',
   },
   {
     label: 'Candidate List',
-    message: 'Add Candidate CTC bucket mein kaun kaun hai?',
+    message: 'Who is in the Add Candidate CTC bucket?',
     icon: Users,
     color: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:border-blue-300',
     iconBg: 'bg-blue-100',
   },
   {
     label: 'New Candidate',
-    message: 'Naya candidate add karna hai',
+    message: 'I want to add a new candidate',
     icon: UserPlus,
     color: 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300',
     iconBg: 'bg-emerald-100',
   },
   {
     label: 'Offer Letter',
-    message: 'Offer letter generate karo',
+    message: 'Generate offer letter',
     icon: FileText,
     color: 'bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100 hover:border-violet-300',
     iconBg: 'bg-violet-100',
@@ -155,26 +155,26 @@ const ONBOARDING_ACTIONS = [
 ]
 
 const ONBOARDING_PROMPTS = [
-  'Akash ka CTC compute kro',
-  'Test LOI Explore ka gross 5 lakh krdo',
-  'Add Candidate CTC mein kitne pending hain?',
-  'Candidate ko offer letter bhejo',
+  'Compute CTC for Akash',
+  'Set Test LOI Explore gross to 5 lakh',
+  'How many candidates are pending in Add Candidate CTC?',
+  'Send offer letter to the candidate',
 ]
 
 const LEAVE_PROMPTS = [
   'Sick leave for tomorrow',
   'WFH today 10am to 7pm',
-  'Meri leave balance dikhao',
+  'Show my leave balance',
   'Apply regularization for yesterday',
-  'Upcoming holidays dikhao',
+  'Show upcoming holidays',
 ]
 
 const POLICY_PROMPTS = [
-  'Leave policy kya hai?',
-  'WFH ke rules batao',
-  'Attendance policy explain karo',
-  'Employee benefits kya hain?',
-  'Sick leave kitni milti hai?',
+  'What is the leave policy?',
+  'Explain the WFH rules',
+  'Explain the attendance policy',
+  'What employee benefits are available?',
+  'How many sick leaves are allowed?',
 ]
 
 export default function QuickActions({ agentType, onAction }) {
@@ -197,7 +197,7 @@ export default function QuickActions({ agentType, onAction }) {
           ) : isPolicy ? (
             <>Policy <span className="gradient-text">Assistant</span></>
           ) : (
-            <><span className="animate-wave">👋</span> Namaste! <span className="gradient-text">Kya help chahiye?</span></>
+            <><span className="animate-wave">👋</span> Hello! <span className="gradient-text">How can I help?</span></>
           )}
         </h2>
         <p className="text-gray-500 mt-2.5 text-sm max-w-md mx-auto">

@@ -92,7 +92,7 @@ const AGENT_CONFIG = {
     subtitle: 'Company policies, HR rules, guidelines & benefits',
     icon: FileSearch,
     gradient: 'from-violet-500 to-purple-600',
-    placeholder: 'Ask about any company policy... (e.g., leave policy kya hai?)',
+    placeholder: 'Ask about any company policy... (e.g., what is the leave policy?)',
     inputHint: 'Leave Policy | HR Rules | Guidelines | Benefits',
   },
   'onboarding': {
@@ -100,7 +100,7 @@ const AGENT_CONFIG = {
     subtitle: 'CTC computation, offer letter, candidate onboarding',
     icon: UserPlus,
     gradient: 'from-amber-500 to-orange-600',
-    placeholder: "Type your message... (e.g., akash ka CTC compute kro)",
+    placeholder: "Type your message... (e.g., compute CTC for Akash)",
     inputHint: 'CTC Compute | Offer Letter | Documents | Verification',
   },
 }
