@@ -23,13 +23,6 @@ export async function getPolicyStatus(userId) {
 }
 
 // ---- Chat ----
-export async function sendMessage({ userId, message, sessionId, context }) {
-  return request('/chat', {
-    method: 'POST',
-    body: JSON.stringify({ userId, message, sessionId, context }),
-  })
-}
-
 /**
  * SSE-streamed chat. Emits:
  *   onPhase({ node, label? })        — per orchestration/LangGraph-node tick
