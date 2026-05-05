@@ -71,10 +71,10 @@ export default function ChatMessage({ message, isLast, onActionSelect, onRate, o
       <div className={`flex-1 min-w-0 flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
         <div className={`relative ${message.data && !isUser ? 'w-full' : 'max-w-[75%]'}`}>
           <div
-            className={`msg-bubble leading-relaxed rounded-lg ${
+            className={`msg-bubble leading-relaxed rounded-2xl ${
               isUser
-                ? 'px-3 py-2 text-[13px] font-light bg-indigo-600 text-white rounded-tr-none shadow-sm shadow-indigo-600/15'
-                : 'px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-none'
+                ? 'px-3.5 py-2 text-[13px] font-light bg-indigo-600 text-white shadow-sm shadow-indigo-600/15'
+                : 'px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-slate-100'
             }`}
           >
             <FormattedText text={message.text} isUser={isUser} />
