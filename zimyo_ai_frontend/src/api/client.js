@@ -9,7 +9,15 @@ async function request(url, options = {}) {
     const error = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(error.detail || `Request failed: ${res.status}`)
   }
-  return res.json()
+  const json = await res.json()
+  // Backend signals an expired Zimyo token via a 200 + envelope so every
+  // MCP-backed endpoint can carry the same shape without per-route changes.
+  if (json && json.status === 'session_expired') {
+    const err = new Error(json.message || 'Session expired. Please log in again.')
+    err.code = 'session_expired'
+    throw err
+  }
+  return json
 }
 
 // ---- Auth ----
