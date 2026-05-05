@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { sendMessageStream, createSession, getSessions, getSessionHistory, getWorkflow, getPolicyStatus } from '../api/client'
+import { sendMessageStream, createSession, getSessions, getSessionHistory, getWorkflow, getPolicyStatus, rateMessage } from '../api/client'
 import Sidebar from '../components/Sidebar'
 import ChatMessage, { TypingIndicator } from '../components/ChatMessage'
 import ChatInput from '../components/ChatInput'
@@ -121,6 +121,10 @@ export default function Chat({ user, onLogout }) {
   const [toast, setToast] = useState(null)
   const [activeWorkflow, setActiveWorkflow] = useState(null)
   const [policyStatus, setPolicyStatus] = useState(null)
+  // replyContext: when set, the next outgoing message references this earlier
+  // message so the backend can prepend its text into the router/agent prompt.
+  // Cleared automatically after a successful send.
+  const [replyContext, setReplyContext] = useState(null)   // { messageId, text, role }
   const messagesEndRef = useRef(null)
   const initialized = useRef(false)
 
@@ -282,9 +286,14 @@ export default function Chat({ user, onLogout }) {
         ])
       }
 
+      // Snapshot + clear reply context up-front so a slow stream doesn't carry
+      // it into a subsequent message if user types before this one finishes.
+      const replyToMessageId = replyContext?.messageId || null
+      setReplyContext(null)
+
       try {
         await sendMessageStream(
-          { userId: user.userId, message: text, sessionId },
+          { userId: user.userId, message: text, sessionId, replyToMessageId },
           {
             onPhase: (p) => {
               setPhaseLabel(p.label || nodeLabel(p.node))
@@ -301,6 +310,18 @@ export default function Chat({ user, onLogout }) {
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === streamId ? { ...m, text: (m.text || '') + t } : m
+                )
+              )
+            },
+            onTrace: (trace) => {
+              // Backend only emits this when TRACE=true. Append to the
+              // streaming bubble so the user sees a live-updating panel.
+              ensureStreamBubble()
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === streamId
+                    ? { ...m, traces: [...(m.traces || []), trace] }
+                    : m
                 )
               )
             },
@@ -321,6 +342,7 @@ export default function Chat({ user, onLogout }) {
                           data: finalData,
                           resources,
                           streaming: false,
+                          messageId: result.messageId || null,
                         }
                       : m
                   )
@@ -335,6 +357,7 @@ export default function Chat({ user, onLogout }) {
                     timestamp: new Date().toISOString(),
                     resources,
                     data: finalData,
+                    messageId: result.messageId || null,
                   },
                 ])
               }
@@ -369,8 +392,39 @@ export default function Chat({ user, onLogout }) {
         setPhaseLabel('')
       }
     },
-    [activeSessionId, loading, user.userId]
+    [activeSessionId, loading, user.userId, replyContext]
   )
+
+  // Reply: capture the selected message as context for the next outgoing turn.
+  // The actual send-time wiring lives in handleSend; this just records the ref.
+  const handleReply = useCallback((msg) => {
+    if (!msg?.messageId) return
+    setReplyContext({
+      messageId: msg.messageId,
+      text:      msg.text || '',
+      role:      msg.role || 'assistant',
+    })
+  }, [])
+
+  // Submit a 1-5 rating for an assistant message. On 5★ the backend also
+  // saves it as a few-shot example. We optimistically mark `rated` on the
+  // local message so the widget can show "saved" without waiting on a refetch.
+  const handleRate = useCallback(async (messageId, rating) => {
+    if (!messageId || !user?.userId) return
+    try {
+      const result = await rateMessage({ userId: user.userId, messageId, rating })
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.messageId === messageId
+            ? { ...m, rated: rating, savedAsExample: !!result.saved_as_example }
+            : m
+        )
+      )
+      if (result.message) setToast({ type: 'success', message: result.message })
+    } catch (err) {
+      setToast({ type: 'error', message: err.message || 'Could not save rating.' })
+    }
+  }, [user?.userId])
 
   const showQuickActions = messages.length === 0
 
@@ -471,6 +525,8 @@ export default function Chat({ user, onLogout }) {
                   message={msg}
                   isLast={idx === messages.length - 1 && !loading}
                   onActionSelect={handleSend}
+                  onRate={handleRate}
+                  onReply={handleReply}
                 />
               ))}
               {loading && <TypingIndicator label={phaseLabel} />}
@@ -483,6 +539,8 @@ export default function Chat({ user, onLogout }) {
         <ChatInput
           onSend={handleSend}
           disabled={loading}
+          replyContext={replyContext}
+          onCancelReply={() => setReplyContext(null)}
           placeholder={config.placeholder}
           hint={config.inputHint}
           onError={setToast}

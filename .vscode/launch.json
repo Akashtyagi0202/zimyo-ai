@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "FastAPI Debug (Root)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "pythonPath": "${workspaceFolder}/zimyo_ai_assistant/.venv/bin/python",
+            "cwd": "${workspaceFolder}/zimyo_ai_assistant",
+            "args": [
+                "hrms_agents.main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8080",
+                "--reload"
+            ],
+            "jinja": true,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/zimyo_ai_assistant"
+            }
+        }
+    ]
+}

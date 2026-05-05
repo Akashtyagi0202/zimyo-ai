@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bot, User, FileText, Copy, Check, Volume2, VolumeX } from 'lucide-react'
+import { Bot, User, FileText, Copy, Check, Volume2, VolumeX, Star, Reply } from 'lucide-react'
 import ActionButtons from './ActionButtons'
 import MessageRenderer from './MessageRenderer'
+import TracePanel from './messages/TracePanel'
 
-export default function ChatMessage({ message, isLast, onActionSelect }) {
+export default function ChatMessage({ message, isLast, onActionSelect, onRate, onReply }) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -93,6 +94,15 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
                   <Copy className="w-3.5 h-3.5" />
                 )}
               </button>
+              {onReply && message.messageId && !message.streaming && (
+                <button
+                  onClick={() => onReply(message)}
+                  className="p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+                  title="Reply with this as context"
+                >
+                  <Reply className="w-3.5 h-3.5" />
+                </button>
+              )}
               {ttsSupported && (
                 <button
                   onClick={handleSpeak}
@@ -137,6 +147,11 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
           <ActionButtons text={message.text} onSelect={onActionSelect} />
         )}
 
+        {/* Per-node trace panel — only present when backend has TRACE=true. */}
+        {!isUser && message.traces && message.traces.length > 0 && (
+          <TracePanel traces={message.traces} />
+        )}
+
         {/* Resource attachments (policy documents) */}
         {message.resources && message.resources.length > 0 && (
           <div className="mt-2 space-y-1.5">
@@ -150,6 +165,16 @@ export default function ChatMessage({ message, isLast, onActionSelect }) {
               </div>
             ))}
           </div>
+        )}
+
+        {/* 5-star rating — assistant messages with a server-issued message_id only.
+            Streaming bubbles get the id on `final`, so this is hidden until then. */}
+        {!isUser && message.messageId && !message.streaming && onRate && (
+          <RatingBar
+            rated={message.rated || 0}
+            savedAsExample={!!message.savedAsExample}
+            onRate={(stars) => onRate(message.messageId, stars)}
+          />
         )}
 
         {/* Timestamp */}
@@ -210,6 +235,61 @@ function FormattedText({ text, isUser }) {
 
         return <p key={i}>{line}</p>
       })}
+    </div>
+  )
+}
+
+/**
+ * 5-star rating bar shown under each assistant message. Hover-preview before
+ * click; once submitted the bar locks to the chosen rating. Server promotes
+ * 5★ ratings to the few-shot example corpus — when that succeeds we surface
+ * a "Saved as example" affordance so the admin sees their approval landed.
+ */
+function RatingBar({ rated, savedAsExample, onRate }) {
+  const [hover, setHover] = useState(0)
+  const display = hover || rated
+  const locked = rated > 0
+  return (
+    <div className="mt-1.5 flex items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+      <div
+        className="flex items-center gap-0.5"
+        onMouseLeave={() => setHover(0)}
+      >
+        {[1, 2, 3, 4, 5].map((n) => {
+          const filled = n <= display
+          return (
+            <button
+              key={n}
+              type="button"
+              disabled={locked}
+              onMouseEnter={() => !locked && setHover(n)}
+              onClick={() => !locked && onRate(n)}
+              className={`p-0.5 rounded transition-colors ${
+                locked ? 'cursor-default' : 'cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-500/10'
+              }`}
+              title={locked ? `Rated ${rated}/5` : `Rate ${n}/5`}
+            >
+              <Star
+                className={`w-3.5 h-3.5 ${
+                  filled
+                    ? 'fill-amber-400 text-amber-400'
+                    : 'text-slate-300 dark:text-slate-600'
+                }`}
+              />
+            </button>
+          )
+        })}
+      </div>
+      {locked && savedAsExample && (
+        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+          Saved as example
+        </span>
+      )}
+      {locked && !savedAsExample && (
+        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+          Thanks
+        </span>
+      )}
     </div>
   )
 }

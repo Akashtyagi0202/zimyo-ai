@@ -36,18 +36,22 @@ export async function getPolicyStatus(userId) {
  *   onPhase({ node, label? })        — per orchestration/LangGraph-node tick
  *   onUiPartial(UiPayload)           — skeleton / partial UI ahead of final
  *   onToken({ t })                   — per-chunk LLM output (opt-in nodes only)
+ *   onTrace({ node, output, duration_ms? })
+ *                                    — per-node debug payload, ONLY emitted
+ *                                       when the backend has TRACE=true. Frontend
+ *                                       attaches them to the assistant bubble.
  *   onFinal(ChatResponseDict)        — once; resolves the promise after it runs
  *   onError({ message })             — terminal error event from server
  * Throws on network / non-2xx.
  */
 export async function sendMessageStream(
-  { userId, message, sessionId, context },
-  { onPhase, onUiPartial, onToken, onFinal, onError, signal } = {}
+  { userId, message, sessionId, context, replyToMessageId },
+  { onPhase, onUiPartial, onToken, onTrace, onFinal, onError, signal } = {}
 ) {
   const res = await fetch(`${BASE_URL}/chat/stream`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, message, sessionId, context }),
+    body: JSON.stringify({ userId, message, sessionId, context, replyToMessageId }),
     signal,
   })
   if (!res.ok || !res.body) {
@@ -83,10 +87,24 @@ export async function sendMessageStream(
       if (event === 'phase') onPhase?.(parsed)
       else if (event === 'ui_partial') onUiPartial?.(parsed)
       else if (event === 'token') onToken?.(parsed)
+      else if (event === 'trace') onTrace?.(parsed)
       else if (event === 'final') { onFinal?.(parsed); return }
       else if (event === 'error') { onError?.(parsed); return }
     }
   }
+}
+
+// ---- Feedback ----
+/**
+ * Submit a 1-5 star rating against an assistant message. Rating == 5 also
+ * promotes the (user → assistant) pair into the few-shot example corpus
+ * server-side. Returns { saved_as_example, rating, message }.
+ */
+export async function rateMessage({ userId, messageId, rating }) {
+  return request('/feedback/rate', {
+    method: 'POST',
+    body: JSON.stringify({ userId, messageId, rating }),
+  })
 }
 
 // ---- Sessions ----

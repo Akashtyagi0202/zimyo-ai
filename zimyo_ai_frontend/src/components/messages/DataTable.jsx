@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react'
-import { Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp, Download } from 'lucide-react'
 
 const BADGE_COLORS = {
   // Status badges
@@ -37,6 +37,52 @@ function formatCell(value, type) {
     } catch { return value }
   }
   return value
+}
+
+// Plain-text representation of a cell for CSV export. Mirrors the display
+// formatter but strips badge wrappers, action button labels, etc. so the
+// downloaded file is a clean spreadsheet, not styled UI.
+function csvCell(col, value) {
+  if (value === null || value === undefined) return ''
+  if (col.type === 'badge') {
+    if (typeof value === 'object' && value.label) return String(value.label)
+    return String(value)
+  }
+  if (col.type === 'action' && typeof value === 'object') return String(value.label || '')
+  if (col.type === 'action_group' && typeof value === 'object' && Array.isArray(value.actions)) {
+    return value.actions.map(a => a.label).filter(Boolean).join(' / ')
+  }
+  return String(formatCell(value, col.type))
+}
+
+function escapeCsv(s) {
+  // RFC 4180: wrap in quotes if the field contains comma, quote, CR or LF;
+  // double any embedded quotes.
+  const v = s == null ? '' : String(s)
+  if (/[",\r\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`
+  return v
+}
+
+function downloadCsv(title, columns, rows) {
+  const header = columns.map(c => escapeCsv(c.label || c.id)).join(',')
+  const body = rows
+    .map(r => columns.map(c => escapeCsv(csvCell(c, r[c.id]))).join(','))
+    .join('\n')
+  const csv = `${header}\n${body}\n`
+  // BOM so Excel opens UTF-8 names correctly.
+  const blob = new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  const safeName = (title || 'export')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'export'
+  a.href = url
+  a.download = `${safeName}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 export default function DataTable({ msg, onAction }) {
@@ -103,10 +149,20 @@ export default function DataTable({ msg, onAction }) {
       {title && (
         <div className="px-4 py-2.5 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
           <span className="text-sm font-semibold text-gray-800">{title}</span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {summary && (
               <span className="text-xs text-gray-500">{summary.label}: {summary.value}</span>
             )}
+            <button
+              type="button"
+              onClick={() => downloadCsv(title, visibleCols, filtered)}
+              title="Download as CSV"
+              aria-label="Download as CSV"
+              className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>CSV</span>
+            </button>
           </div>
         </div>
       )}

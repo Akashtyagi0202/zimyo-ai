@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Sparkles, Mic, MicOff } from 'lucide-react'
+import { Send, Sparkles, Mic, MicOff, Reply, X } from 'lucide-react'
 import useDeepgramSTT from '../hooks/useDeepgramSTT'
 
-export default function ChatInput({ onSend, disabled, placeholder, hint, onError }) {
+export default function ChatInput({
+  onSend, disabled, placeholder, hint, onError,
+  replyContext, onCancelReply,
+}) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const textareaRef = useRef(null)
@@ -55,6 +58,28 @@ export default function ChatInput({ onSend, disabled, placeholder, hint, onError
   return (
     <div className="border-t border-slate-200/70 dark:border-slate-700/50 bg-white/90 dark:bg-slate-900/80 backdrop-blur-md p-4">
       <div className="max-w-4xl mx-auto">
+        {replyContext && (
+          <div className="mb-2 flex items-start gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-500/10 border-l-2 border-indigo-400 dark:border-indigo-500 rounded-r-md">
+            <Reply className="w-3.5 h-3.5 mt-0.5 shrink-0 text-indigo-500 dark:text-indigo-400" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+                Replying to {replyContext.role === 'user' ? 'your message' : 'assistant'}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 break-words">
+                {(replyContext.text || '').slice(0, 200)}
+                {(replyContext.text || '').length > 200 ? '…' : ''}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onCancelReply}
+              className="shrink-0 p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+              title="Cancel reply"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2 transition-all focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-500/20 focus-within:bg-white dark:focus-within:bg-slate-800">
           <textarea
             ref={textareaRef}
