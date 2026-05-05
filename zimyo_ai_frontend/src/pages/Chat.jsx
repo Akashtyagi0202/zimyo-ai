@@ -515,8 +515,10 @@ export default function Chat({ user, onLogout }) {
           </div>
         </div>
 
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto bg-grid">
+        {/* Messages Area — clean white surface so the chat reads as the
+            active panel against the sidebar gutter; matches the slim
+            header + minimal empty state. */}
+        <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-950">
           {showQuickActions ? (
             <QuickActions agentType={agentType} onAction={handleSend} />
           ) : (
