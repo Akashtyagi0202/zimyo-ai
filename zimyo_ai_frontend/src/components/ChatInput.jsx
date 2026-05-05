@@ -80,7 +80,7 @@ export default function ChatInput({
             </button>
           </div>
         )}
-        <div className="flex items-end gap-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2 transition-all focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-500/20 focus-within:bg-white dark:focus-within:bg-slate-800">
+        <div className="flex items-end gap-2 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-3xl px-4 py-2 shadow-sm transition-all focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-500/20 focus-within:shadow-md">
           <textarea
             ref={textareaRef}
             value={text}
@@ -96,12 +96,12 @@ export default function ChatInput({
             onClick={toggleMic}
             disabled={disabled}
             title={isListening ? 'Stop recording' : 'Start voice input (Hinglish)'}
-            className={`p-2.5 rounded-xl transition-all shrink-0 ${
+            className={`p-2 rounded-full transition-all shrink-0 ${
               disabled
-                ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                 : isListening
                 ? 'bg-red-500 text-white shadow-sm shadow-red-500/30 animate-pulse'
-                : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-slate-200 border border-slate-200 dark:border-transparent'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-slate-200'
             }`}
           >
             {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -109,7 +109,7 @@ export default function ChatInput({
           <button
             onClick={handleSend}
             disabled={!hasText || disabled}
-            className={`p-2.5 rounded-xl transition-all shrink-0 ${
+            className={`w-9 h-9 flex items-center justify-center rounded-full transition-all shrink-0 ${
               hasText && !disabled
                 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/25 hover:shadow-md hover:shadow-indigo-600/30'
                 : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
