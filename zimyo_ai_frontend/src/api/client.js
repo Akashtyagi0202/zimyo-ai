@@ -160,6 +160,22 @@ export async function getOfferLetterDefaultsOptions(userId) {
   return request(`/config/offer-letter-defaults/options?userId=${encodeURIComponent(userId)}`)
 }
 
+// ---- Config: Candidate-add defaults ----
+export async function getCandidateDefaults(userId) {
+  return request(`/config/candidate-defaults?userId=${encodeURIComponent(userId)}`)
+}
+
+export async function saveCandidateDefaults(userId, values) {
+  return request('/config/candidate-defaults', {
+    method: 'PUT',
+    body: JSON.stringify({ userId, ...values }),
+  })
+}
+
+export async function getCandidateDefaultsOptions(userId) {
+  return request(`/config/candidate-defaults/options?userId=${encodeURIComponent(userId)}`)
+}
+
 // ---- Config: Active onboarding workflow ----
 export async function getWorkflow(userId) {
   return request(`/config/workflow?userId=${encodeURIComponent(userId)}`)

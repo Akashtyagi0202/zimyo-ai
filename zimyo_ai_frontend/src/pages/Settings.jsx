@@ -15,6 +15,10 @@ import {
   Users,
   FileText,
   GitBranch,
+  UserPlus,
+  Building2,
+  MapPin,
+  IdCard,
 } from 'lucide-react'
 import {
   getCtcDefaults,
@@ -23,6 +27,9 @@ import {
   getOfferLetterDefaults,
   saveOfferLetterDefaults,
   getOfferLetterDefaultsOptions,
+  getCandidateDefaults,
+  saveCandidateDefaults,
+  getCandidateDefaultsOptions,
   getWorkflow,
   saveWorkflow,
   getWorkflowOptions,
@@ -135,6 +142,22 @@ export default function Settings({ user }) {
   })
   const [olCcInput, setOlCcInput] = useState('')
   const [olOptions, setOlOptions] = useState({ templates: [] })
+  const [candValues, setCandValues] = useState({
+    default_designation_id:   '',
+    default_designation_name: '',
+    default_department_id:    '',
+    default_department_name:  '',
+    default_location_id:      '',
+    default_location_name:    '',
+    default_entity_id:        '',
+    default_entity_name:      '',
+    default_age:              '',
+    default_ctc:              '',
+    joining_date_offset_days: 0,
+  })
+  const [candOptions, setCandOptions] = useState({
+    designation: [], department: [], location: [], entity: [],
+  })
   const [wfValues, setWfValues] = useState({ id: '', name: '' })
   const [wfOptions, setWfOptions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -152,10 +175,14 @@ export default function Settings({ user }) {
         default_template_id: '', default_template_name: '', default_cc: [],
       })),
       getOfferLetterDefaultsOptions(user.userId).catch(() => ({ templates: [] })),
+      getCandidateDefaults(user.userId).catch(() => ({})),
+      getCandidateDefaultsOptions(user.userId).catch(() => ({
+        designation: [], department: [], location: [], entity: [],
+      })),
       getWorkflow(user.userId).catch(() => ({ id: '', name: '' })),
       getWorkflowOptions(user.userId).catch(() => ({ workflows: [] })),
     ])
-      .then(([doc, opts, olDoc, olOpts, wfDoc, wfOpts]) => {
+      .then(([doc, opts, olDoc, olOpts, candDoc, candOpts, wfDoc, wfOpts]) => {
         if (cancelled) return
         setValues({
           esic_enabled: doc.esic_enabled ? 1 : 0,
@@ -180,6 +207,25 @@ export default function Settings({ user }) {
         })
         setOlCcInput(ccArr.join(', '))
         setOlOptions({ templates: olOpts?.templates || [] })
+        setCandValues({
+          default_designation_id:   String(candDoc?.default_designation_id || ''),
+          default_designation_name: String(candDoc?.default_designation_name || ''),
+          default_department_id:    String(candDoc?.default_department_id || ''),
+          default_department_name:  String(candDoc?.default_department_name || ''),
+          default_location_id:      String(candDoc?.default_location_id || ''),
+          default_location_name:    String(candDoc?.default_location_name || ''),
+          default_entity_id:        String(candDoc?.default_entity_id || ''),
+          default_entity_name:      String(candDoc?.default_entity_name || ''),
+          default_age:              String(candDoc?.default_age || ''),
+          default_ctc:              String(candDoc?.default_ctc || ''),
+          joining_date_offset_days: Number(candDoc?.joining_date_offset_days || 0),
+        })
+        setCandOptions({
+          designation: candOpts?.designation || [],
+          department:  candOpts?.department  || [],
+          location:    candOpts?.location    || [],
+          entity:      candOpts?.entity      || [],
+        })
         setWfValues({
           id:   String(wfDoc?.id || ''),
           name: String(wfDoc?.name || ''),
@@ -238,6 +284,24 @@ export default function Settings({ user }) {
     setFeedback(null)
   }
 
+  // Generic candidate-defaults dropdown picker — covers all 4 dropdowns
+  // (designation / department / location / entity) since each follows the
+  // same {id, name} → {default_<field>_id, default_<field>_name} mapping.
+  const pickCandDropdown = (field) => (id) => {
+    const opt = (candOptions[field] || []).find((o) => String(o.id) === String(id))
+    setCandValues((prev) => ({
+      ...prev,
+      [`default_${field}_id`]:   id || '',
+      [`default_${field}_name`]: opt?.name || '',
+    }))
+    setFeedback(null)
+  }
+
+  const onCandTextChange = (key) => (e) => {
+    setCandValues((prev) => ({ ...prev, [key]: e.target.value }))
+    setFeedback(null)
+  }
+
   const parseCcList = (raw) => {
     const seen = new Set()
     const out = []
@@ -264,12 +328,20 @@ export default function Settings({ user }) {
           default_template_name: olValues.default_template_name,
           default_cc:            ccList,
         }),
+        saveCandidateDefaults(user.userId, {
+          ...candValues,
+          default_designation_id:   candValues.default_designation_id ? Number(candValues.default_designation_id) : null,
+          default_department_id:    candValues.default_department_id  ? Number(candValues.default_department_id)  : null,
+          default_location_id:      candValues.default_location_id    ? Number(candValues.default_location_id)    : null,
+          default_entity_id:        candValues.default_entity_id      ? Number(candValues.default_entity_id)      : null,
+          joining_date_offset_days: Number(candValues.joining_date_offset_days || 0),
+        }),
       ]
       // Only persist workflow if one is selected — empty id is a no-op (keeps Redis as-is).
       if (wfValues.id) {
         tasks.push(saveWorkflow(user.userId, { id: wfValues.id, name: wfValues.name }))
       }
-      const [saved, olSaved, wfSaved] = await Promise.all(tasks)
+      const [saved, olSaved, candSaved, wfSaved] = await Promise.all(tasks)
       setValues({
         esic_enabled: saved.esic_enabled ? 1 : 0,
         pf_enabled:   saved.pf_enabled   ? 1 : 0,
@@ -288,10 +360,25 @@ export default function Settings({ user }) {
         default_cc:            savedCc,
       })
       setOlCcInput(savedCc.join(', '))
+      if (candSaved) {
+        setCandValues({
+          default_designation_id:   String(candSaved.default_designation_id || ''),
+          default_designation_name: String(candSaved.default_designation_name || ''),
+          default_department_id:    String(candSaved.default_department_id || ''),
+          default_department_name:  String(candSaved.default_department_name || ''),
+          default_location_id:      String(candSaved.default_location_id || ''),
+          default_location_name:    String(candSaved.default_location_name || ''),
+          default_entity_id:        String(candSaved.default_entity_id || ''),
+          default_entity_name:      String(candSaved.default_entity_name || ''),
+          default_age:              String(candSaved.default_age || ''),
+          default_ctc:              String(candSaved.default_ctc || ''),
+          joining_date_offset_days: Number(candSaved.joining_date_offset_days || 0),
+        })
+      }
       if (wfSaved && wfSaved.id) {
         setWfValues({ id: String(wfSaved.id), name: String(wfSaved.name || '') })
       }
-      setFeedback({ kind: 'ok', text: 'Defaults saved. They will apply to your next CTC and offer-letter flows.' })
+      setFeedback({ kind: 'ok', text: 'Defaults saved. They will apply to your next CTC, offer-letter, and add-candidate flows.' })
     } catch (e) {
       setFeedback({ kind: 'err', text: e.message || 'Save failed' })
     } finally {
@@ -482,6 +569,133 @@ export default function Settings({ user }) {
                   disabled={saving}
                   emptyHint="No Bonus plans available — run a CTC compute first so I can pick up your org's plans."
                 />
+              </div>
+            </section>
+
+            {/* ═══════════════════════════════════════════════════ */}
+            {/* ADD-CANDIDATE DEFAULTS                                */}
+            {/* ═══════════════════════════════════════════════════ */}
+            <div className="pt-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zimyo-50 dark:bg-zimyo-900/30 border border-zimyo-200 dark:border-zimyo-700/40 rounded-full text-xs font-medium text-zimyo-600 dark:text-zimyo-300 mb-3">
+                <UserPlus className="w-3.5 h-3.5" />
+                Add candidate defaults
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Auto-fill on candidate creation</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
+                These apply when you say "add candidate &lt;name&gt;, &lt;email&gt;". Override any field
+                inline by mentioning it ("…, designation product manager, ctc 12 lakh").
+              </p>
+            </div>
+
+            {/* Designation / Department / Location / Entity */}
+            <section className="rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 space-y-4">
+              <div className="flex items-start gap-3 mb-2">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <Briefcase className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Org placement</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    The 4 mandatory dropdowns Zimyo's joinee form requires. Sourced live from your workspace.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Select
+                  icon={Briefcase}
+                  label="Designation"
+                  value={candValues.default_designation_id}
+                  onChange={pickCandDropdown('designation')}
+                  options={candOptions.designation}
+                  disabled={saving}
+                  emptyHint="No designations available — check workspace setup."
+                />
+                <Select
+                  icon={Building2}
+                  label="Department"
+                  value={candValues.default_department_id}
+                  onChange={pickCandDropdown('department')}
+                  options={candOptions.department}
+                  disabled={saving}
+                  emptyHint="No departments available."
+                />
+                <Select
+                  icon={MapPin}
+                  label="Location"
+                  value={candValues.default_location_id}
+                  onChange={pickCandDropdown('location')}
+                  options={candOptions.location}
+                  disabled={saving}
+                  emptyHint="No locations available."
+                />
+                <Select
+                  icon={IdCard}
+                  label="Entity"
+                  value={candValues.default_entity_id}
+                  onChange={pickCandDropdown('entity')}
+                  options={candOptions.entity}
+                  disabled={saving}
+                  emptyHint="No entities available."
+                />
+              </div>
+            </section>
+
+            {/* Default age / CTC / joining offset */}
+            <section className="rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+              <div className="flex items-start gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <CalendarRange className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Numeric defaults</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Joining date is computed as today + offset days; admin can override per-candidate.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    Age
+                  </label>
+                  <input
+                    type="text"
+                    value={candValues.default_age}
+                    onChange={onCandTextChange('default_age')}
+                    disabled={saving}
+                    placeholder="25"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-zimyo-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    Annual CTC (₹)
+                  </label>
+                  <input
+                    type="text"
+                    value={candValues.default_ctc}
+                    onChange={onCandTextChange('default_ctc')}
+                    disabled={saving}
+                    placeholder="500000"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-zimyo-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    Joining offset (days)
+                  </label>
+                  <input
+                    type="number"
+                    value={candValues.joining_date_offset_days}
+                    onChange={onCandTextChange('joining_date_offset_days')}
+                    disabled={saving}
+                    placeholder="0"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-zimyo-500/50"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    0 = today, 7 = today+7d, etc.
+                  </p>
+                </div>
               </div>
             </section>
 
