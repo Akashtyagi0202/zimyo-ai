@@ -12,12 +12,9 @@
 
 import { useState } from 'react'
 import { ExternalLink, Download } from 'lucide-react'
-
-const ACTION_STYLES = {
-  primary: 'bg-zimyo-600 hover:bg-zimyo-700 text-white shadow-sm',
-  ghost:   'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200',
-  danger:  'bg-red-600 hover:bg-red-700 text-white',
-}
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 export default function PdfPreview({ msg, onAction }) {
   const { title, subtitle, url, height = 600, actions = [] } = msg
@@ -27,38 +24,51 @@ export default function PdfPreview({ msg, onAction }) {
 
   if (!url) {
     return (
-      <div className="bg-white border border-red-200 rounded-xl p-4 max-w-2xl mt-2 text-sm text-red-700">
+      <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-500/30 rounded-xl p-4 max-w-2xl mt-2 text-sm text-rose-700 dark:text-rose-300">
         Preview unavailable — missing PDF url.
       </div>
     )
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full max-w-2xl mt-2 animate-fade-in-scale">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden w-full max-w-2xl mt-2 animate-fade-in-scale shadow-sm">
       {(title || subtitle) && (
         <div className="px-4 pt-4 pb-2 flex items-start justify-between gap-3">
           <div>
-            {title    && <h3 className="text-sm font-semibold text-gray-900">{title}</h3>}
-            {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+            {title && <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>}
+            {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Open in new tab"
-              className="p-1.5 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-            <a
-              href={url}
-              download
-              title="Download"
-              className="p-1.5 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-            >
-              <Download className="w-3.5 h-3.5" />
-            </a>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  className="h-7 w-7 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
+                >
+                  <a href={url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Open in new tab</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  className="h-7 w-7 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100"
+                >
+                  <a href={url} download>
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Download</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       )}
@@ -66,14 +76,14 @@ export default function PdfPreview({ msg, onAction }) {
       <div className="px-4 pb-3">
         <div className="relative">
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-lg animate-pulse text-xs text-gray-400">
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800/60 rounded-lg animate-pulse text-xs text-slate-400 dark:text-slate-500">
               Loading PDF…
             </div>
           )}
           <iframe
             src={url}
             title={title || 'PDF Preview'}
-            className="w-full border border-gray-200 rounded-lg bg-white"
+            className="w-full border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-100"
             style={{ height: `${height}px` }}
             onLoad={() => setLoading(false)}
           />
@@ -81,18 +91,22 @@ export default function PdfPreview({ msg, onAction }) {
       </div>
 
       {actions.length > 0 && (
-        <div className="px-4 pb-4 pt-2 flex gap-2 border-t border-gray-100">
-          {actions.map(a => (
-            <button
+        <div className="px-4 pb-4 pt-2 flex gap-2 border-t border-slate-100 dark:border-slate-800">
+          {actions.map((a) => (
+            <Button
               key={a.id}
+              variant={a.style === 'primary' ? 'default' : a.style === 'danger' ? 'destructive' : 'outline'}
+              size="sm"
               onClick={() => handleAction(a)}
               disabled={a.disabled || a.loading}
-              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all active:scale-[0.97] disabled:opacity-50 ${
-                a.fullWidth ? 'flex-1' : ''
-              } ${ACTION_STYLES[a.style] || ACTION_STYLES.ghost}`}
+              className={cn(
+                'h-9 text-xs',
+                a.fullWidth && 'flex-1',
+                a.style === 'primary' && 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20'
+              )}
             >
-              {a.loading ? 'Loading...' : a.label}
-            </button>
+              {a.loading ? 'Loading…' : a.label}
+            </Button>
           ))}
         </div>
       )}

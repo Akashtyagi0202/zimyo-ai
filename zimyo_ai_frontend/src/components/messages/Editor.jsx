@@ -19,22 +19,11 @@
 
 import { useState } from 'react'
 import RichTextEditor from './_RichTextEditor'
-
-const ACTION_STYLES = {
-  primary: 'bg-zimyo-600 hover:bg-zimyo-700 text-white shadow-sm',
-  ghost:   'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200',
-  danger:  'bg-red-600 hover:bg-red-700 text-white',
-}
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export default function Editor({ msg, onAction }) {
-  const {
-    title,
-    subtitle,
-    content = '',
-    format = 'html',
-    config = {},
-    actions = [],
-  } = msg
+  const { title, subtitle, content = '', format = 'html', config = {}, actions = [] } = msg
 
   const [html, setHtml] = useState(content)
 
@@ -46,35 +35,35 @@ export default function Editor({ msg, onAction }) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full max-w-2xl mt-2 animate-fade-in-scale">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden w-full max-w-2xl mt-2 animate-fade-in-scale shadow-sm">
       {(title || subtitle) && (
         <div className="px-4 pt-4 pb-2">
-          {title    && <h3 className="text-sm font-semibold text-gray-900">{title}</h3>}
-          {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+          {title && <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>}
+          {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
         </div>
       )}
 
       <div className="px-4 pb-3">
-        <RichTextEditor
-          value={html}
-          onChange={setHtml}
-          config={{ minHeight: 220, ...config }}
-        />
+        <RichTextEditor value={html} onChange={setHtml} config={{ minHeight: 220, ...config }} />
       </div>
 
       {actions.length > 0 && (
-        <div className="px-4 pb-4 pt-2 flex gap-2 border-t border-gray-100">
-          {actions.map(a => (
-            <button
+        <div className="px-4 pb-4 pt-2 flex gap-2 border-t border-slate-100 dark:border-slate-800">
+          {actions.map((a) => (
+            <Button
               key={a.id}
+              variant={a.style === 'primary' ? 'default' : a.style === 'danger' ? 'destructive' : 'outline'}
+              size="sm"
               onClick={() => handleAction(a)}
               disabled={a.disabled || a.loading}
-              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all active:scale-[0.97] disabled:opacity-50 ${
-                a.fullWidth ? 'flex-1' : ''
-              } ${ACTION_STYLES[a.style] || ACTION_STYLES.ghost}`}
+              className={cn(
+                'h-9 text-xs',
+                a.fullWidth && 'flex-1',
+                a.style === 'primary' && 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20'
+              )}
             >
-              {a.loading ? 'Loading...' : a.label}
-            </button>
+              {a.loading ? 'Loading…' : a.label}
+            </Button>
           ))}
         </div>
       )}

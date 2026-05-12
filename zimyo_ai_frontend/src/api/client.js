@@ -45,13 +45,20 @@ export async function getPolicyStatus(userId) {
  * Throws on network / non-2xx.
  */
 export async function sendMessageStream(
-  { userId, message, sessionId, context, replyToMessageId },
+  { userId, message, sessionId, context, replyToMessageId, inputMode },
   { onPhase, onUiPartial, onToken, onTrace, onFinal, onError, signal } = {}
 ) {
   const res = await fetch(`${BASE_URL}/chat/stream`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, message, sessionId, context, replyToMessageId }),
+    body: JSON.stringify({
+      userId,
+      message,
+      sessionId,
+      context,
+      replyToMessageId,
+      input_mode: inputMode,
+    }),
     signal,
   })
   if (!res.ok || !res.body) {

@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+// SECURITY TODO (report.md item #5): VITE_DEEPGRAM_API_KEY ships in the JS
+// bundle and is readable by anyone who opens DevTools. Do NOT consider this
+// hook safe for production. Migration path (one of):
+//   1. Backend mints short-lived Deepgram temp tokens via
+//      `POST /voice/deepgram-token` (server-side key, 60s expiry); FE
+//      requests a token per session and uses it instead of the master key.
+//   2. Backend proxies the WebSocket: FE → our WS endpoint → Deepgram. FE
+//      never sees a Deepgram credential.
+// Track this in `services/voice/` (to be created). Until either is in
+// place, treat any deployment of this hook to non-internal builds as a
+// known-leak deploy and rotate the key on a regular cadence.
 const DEEPGRAM_WS = 'wss://api.deepgram.com/v1/listen'
 
 function buildUrl(params) {
@@ -136,7 +147,13 @@ export default function useDeepgramSTT({ onFinal, onError, language = 'multi' } 
     setIsListening(false)
   }, [cleanup])
 
-  useEffect(() => () => cleanup(), [cleanup])
+  // Empty-deps unmount cleanup with a ref-to-latest. cleanup is stable today
+  // (useCallback with []), but routing the unmount path through a ref keeps
+  // this resilient if a future refactor adds dependencies and accidentally
+  // turns this effect into a re-run-on-each-render.
+  const cleanupRef = useRef(cleanup)
+  useEffect(() => { cleanupRef.current = cleanup }, [cleanup])
+  useEffect(() => () => cleanupRef.current?.(), [])
 
   return { isListening, interimText, startListening, stopListening }
 }

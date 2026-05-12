@@ -1,13 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { sendMessageStream, createSession, getSessions, getSessionHistory, getWorkflow, getPolicyStatus, rateMessage } from '../api/client'
+import { AGENT_BY_ID, DEFAULT_AGENT_ID } from '../config/agents'
 import Sidebar from '../components/Sidebar'
 import ChatMessage, { TypingIndicator } from '../components/ChatMessage'
 import ChatInput from '../components/ChatInput'
 import QuickActions from '../components/QuickActions'
 import Toast from '../components/Toast'
-import { ArrowLeft, CalendarDays, FileSearch, UserPlus, Sun, Moon, GitBranch, MoreHorizontal } from 'lucide-react'
+import { ArrowLeft, FileSearch, Sun, Moon, GitBranch, MoreHorizontal } from 'lucide-react'
 import useDarkMode from '../hooks/useDarkMode'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 /**
  * Convert a send payload into a human-friendly label for the chat bubble.
@@ -62,6 +73,10 @@ function nodeLabel(node) {
     .trim() + '…'
 }
 
+// Strip the `{"action":"submit_leave"}` wrapping that button clicks send so
+// the user sees a friendly label in the bubble. Only run on user-typed/clicked
+// payloads — assistant text never starts with `{` in practice and parsing it
+// would just waste cycles.
 function getDisplayText(text) {
   if (typeof text !== 'string' || !text.startsWith('{')) return text
   try {
@@ -78,37 +93,11 @@ function getDisplayText(text) {
   return text
 }
 
-const AGENT_CONFIG = {
-  'leave-attendance': {
-    title: 'Leave & Attendance Agent',
-    subtitle: 'Leave, On-Duty, Regularization, Balance, Holidays, Salary',
-    icon: CalendarDays,
-    gradient: 'from-blue-500 to-indigo-600',
-    placeholder: 'Type your message... (e.g., apply leave, check balance, WFH request)',
-    inputHint: 'Leave | On-Duty | Regularization | Balance | Holidays | Salary',
-  },
-  'policy': {
-    title: 'Policy Agent',
-    subtitle: 'Company policies, HR rules, guidelines & benefits',
-    icon: FileSearch,
-    gradient: 'from-violet-500 to-purple-600',
-    placeholder: 'Ask about any company policy... (e.g., what is the leave policy?)',
-    inputHint: 'Leave Policy | HR Rules | Guidelines | Benefits',
-  },
-  'onboarding': {
-    title: 'Onboarding Agent',
-    subtitle: 'CTC computation, offer letter, candidate onboarding',
-    icon: UserPlus,
-    gradient: 'from-amber-500 to-orange-600',
-    placeholder: "Type your message... (e.g., compute CTC for Akash)",
-    inputHint: 'CTC Compute | Offer Letter | Documents | Verification',
-  },
-}
-
 export default function Chat({ user, onLogout }) {
   const { agentType } = useParams()
   const navigate = useNavigate()
-  const config = AGENT_CONFIG[agentType] || AGENT_CONFIG['leave-attendance']
+  const agent = AGENT_BY_ID[agentType] || AGENT_BY_ID[DEFAULT_AGENT_ID]
+  const config = { ...agent, ...agent.chat }
   const { isDark, toggle: toggleDark } = useDarkMode()
 
   const [sessions, setSessions] = useState([])
@@ -120,22 +109,38 @@ export default function Chat({ user, onLogout }) {
   const [toast, setToast] = useState(null)
   const [activeWorkflow, setActiveWorkflow] = useState(null)
   const [policyStatus, setPolicyStatus] = useState(null)
+  // input_mode flows both ways: ChatInput tags outgoing sends with their
+  // source ('voice' | 'text'); the backend echoes / overrides via the final
+  // payload so a voice-initiated turn keeps rendering voice-shaped acks
+  // (TTS playback + auto re-arm of the mic) on the next round-trip.
+  const [inputMode, setInputMode] = useState('text')
   // replyContext: when set, the next outgoing message references this earlier
   // message so the backend can prepend its text into the router/agent prompt.
   // Cleared automatically after a successful send.
   const [replyContext, setReplyContext] = useState(null)   // { messageId, text, role }
   const messagesEndRef = useRef(null)
-  const initialized = useRef(false)
+  // Tracks the in-flight stream so a navigate-away or rapid second send
+  // can abort the first cleanly (no setState on an unmounted component,
+  // no orphaned reader leaking the SSE socket).
+  const sendAbortRef = useRef(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  // On unmount (e.g. user clicks "Back to agents" mid-stream), abort the
+  // in-flight SSE so we don't leak the reader and don't setState on an
+  // unmounted component.
+  useEffect(() => () => sendAbortRef.current?.abort(), [])
+
   useEffect(() => {
-    if (initialized.current) return
-    initialized.current = true
+    if (!user?.userId) return
     loadSessions()
-  }, [])
+    // user/agent change → reload session list. loadSessions itself is
+    // idempotent (creates a session if none exist), so dropping the
+    // ref-guard is safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.userId, agentType])
 
   useEffect(() => {
     if (agentType !== 'onboarding' || !user?.userId) return
@@ -147,7 +152,10 @@ export default function Chat({ user, onLogout }) {
       })
       .catch(() => { if (!cancelled) setActiveWorkflow(null) })
     return () => { cancelled = true }
-  }, [agentType, user?.userId, messages.length])
+    // Deliberately NOT keyed on messages.length — refetching on every chat
+    // turn was firing /config/workflow per-message. Refresh happens
+    // explicitly when an action lands (see onFinal `result.workflow_changed`).
+  }, [agentType, user?.userId])
 
   // Policy agent: poll ingestion status so user knows when RAG is ready.
   // Stops polling once status terminates (completed/failed).
@@ -201,7 +209,7 @@ export default function Chat({ user, onLogout }) {
         setMessages([])
       }
     } catch (err) {
-      console.error('Failed to create session:', err)
+      setToast({ type: 'error', message: err.message || 'Could not create a new chat.' })
     }
   }
 
@@ -230,8 +238,19 @@ export default function Chat({ user, onLogout }) {
   }
 
   const handleSend = useCallback(
-    async (text) => {
+    async (text, meta = {}) => {
       if (!text.trim() || loading) return
+      const sendMode = meta.source === 'voice' ? 'voice' : 'text'
+      setInputMode(sendMode)
+
+      // Abort any in-flight stream before starting a new one. (loading-guard
+      // above prevents the common case, but defensive against edge cases
+      // where a hung stream hasn't unwound yet.)
+      if (sendAbortRef.current) {
+        sendAbortRef.current.abort()
+      }
+      const controller = new AbortController()
+      sendAbortRef.current = controller
 
       let sessionId = activeSessionId
       if (!sessionId) {
@@ -251,18 +270,23 @@ export default function Chat({ user, onLogout }) {
         }
       }
 
+      // crypto.randomUUID() is widely supported in modern browsers; fall
+      // back to a Date.now+random combo for older WebView environments.
+      const newId = (prefix) =>
+        `${prefix}-${(globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)}`
+
       const userMsg = {
-        id: `user-${Date.now()}`,
+        id: newId('user'),
         role: 'user',
         text: getDisplayText(text),
         timestamp: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, userMsg])
       setLoading(true)
-      setPhaseLabel('Samajh raha hoon…')
+      setPhaseLabel('Thinking…')
 
       // Stable id for the streaming bubble; created lazily on first token/ui_partial.
-      const streamId = `stream-${Date.now()}`
+      const streamId = newId('stream')
       let streamingCreated = false
 
       // Idempotent: create an empty streaming bubble on first signal, drop typing.
@@ -292,8 +316,9 @@ export default function Chat({ user, onLogout }) {
 
       try {
         await sendMessageStream(
-          { userId: user.userId, message: text, sessionId, replyToMessageId },
+          { userId: user.userId, message: text, sessionId, replyToMessageId, inputMode: sendMode },
           {
+            signal: controller.signal,
             onPhase: (p) => {
               setPhaseLabel(p.label || nodeLabel(p.node))
             },
@@ -330,6 +355,12 @@ export default function Chat({ user, onLogout }) {
               const finalData = result.ui || result.data || null
               const resources = result.resources || null
 
+              // Backend may flip the mode (voice → text when handing off to a
+              // form, or vice-versa). Echo of the same value is a no-op.
+              if (result.input_mode === 'voice' || result.input_mode === 'text') {
+                setInputMode(result.input_mode)
+              }
+
               if (streamingCreated) {
                 // Replace the streaming bubble's payload with the final one.
                 setMessages((prev) =>
@@ -350,7 +381,7 @@ export default function Chat({ user, onLogout }) {
                 setMessages((prev) => [
                   ...prev,
                   {
-                    id: `bot-${Date.now()}`,
+                    id: newId('bot'),
                     role: 'assistant',
                     text: finalText,
                     timestamp: new Date().toISOString(),
@@ -367,7 +398,7 @@ export default function Chat({ user, onLogout }) {
               setMessages((prev) => [
                 ...prev,
                 {
-                  id: `err-${Date.now()}`,
+                  id: newId('err'),
                   role: 'assistant',
                   text: `Error: ${err.message || 'Something went wrong.'}`,
                   timestamp: new Date().toISOString(),
@@ -377,16 +408,26 @@ export default function Chat({ user, onLogout }) {
           }
         )
       } catch (err) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `err-${Date.now()}`,
-            role: 'assistant',
-            text: `Error: ${err.message || 'Something went wrong. Please try again.'}`,
-            timestamp: new Date().toISOString(),
-          },
-        ])
+        // Aborts are deliberate — don't surface as a user-visible error.
+        if (err?.name === 'AbortError' || controller.signal.aborted) {
+          // fall through to finally
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: newId('err'),
+              role: 'assistant',
+              text: `Error: ${err.message || 'Something went wrong. Please try again.'}`,
+              timestamp: new Date().toISOString(),
+            },
+          ])
+        }
       } finally {
+        // Only clear if we still own the slot — a newer send may have
+        // already overwritten sendAbortRef before we got here.
+        if (sendAbortRef.current === controller) {
+          sendAbortRef.current = null
+        }
         setLoading(false)
         setPhaseLabel('')
       }
@@ -446,21 +487,27 @@ export default function Chat({ user, onLogout }) {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Chat Header — slim, Craze-style. Status / preferences moved into
-            a kebab menu so the bar reads as a single hierarchy line.
-            Workflow chip + policy-status chip stay inline because they're
-            action-relevant (admin clicks workflow → settings; policy chip
-            tells user whether RAG is ready). */}
+        {/* Chat header — slim Craze-style bar. Title left, status chips +
+            kebab menu right. Workflow / policy chips stay inline because
+            they're action-relevant (click workflow → settings, policy chip
+            tells user whether RAG is ready). Online + theme moved into the
+            kebab menu so the bar reads as one tight hierarchy line. */}
         <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between sticky top-0 z-10">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/agents')}
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all active:scale-95"
-              title="Back to agents"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <h1 className="text-[13px] font-medium text-slate-900 dark:text-slate-100 tracking-tight">
+          <div className="flex items-center gap-1.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/agents')}
+                  className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Back to agents</TooltipContent>
+            </Tooltip>
+            <h1 className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
               {config.title}
             </h1>
           </div>
@@ -491,27 +538,31 @@ export default function Chat({ user, onLogout }) {
                 </span>
               </button>
             )}
-            <details className="relative group">
-              <summary className="list-none p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all cursor-pointer marker:hidden [&::-webkit-details-marker]:hidden">
-                <MoreHorizontal className="w-4 h-4" />
-              </summary>
-              <div className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg overflow-hidden text-[12px]">
-                <div className="px-3 py-2 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel className="flex items-center gap-2 text-[11px] font-normal text-slate-500 dark:text-slate-400">
                   <span className="relative flex w-1.5 h-1.5 shrink-0">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-online-pulse" />
                     <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   </span>
-                  <span className="text-slate-600 dark:text-slate-300">Online</span>
-                </div>
-                <button
-                  onClick={toggleDark}
-                  className="w-full px-3 py-2 flex items-center gap-2 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
+                  Online
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleDark} className="text-[12px]">
                   {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
                   <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
-                </button>
-              </div>
-            </details>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -548,6 +599,7 @@ export default function Chat({ user, onLogout }) {
           placeholder={config.placeholder}
           hint={config.inputHint}
           onError={setToast}
+          inputMode={inputMode}
         />
       </div>
     </div>

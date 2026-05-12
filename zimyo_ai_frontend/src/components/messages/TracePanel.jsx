@@ -25,27 +25,27 @@ export default function TracePanel({ traces }) {
   if (!traces || traces.length === 0) return null
 
   return (
-    <div className="mt-2 w-full max-w-2xl border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden text-xs">
+    <div className="mt-2 w-full max-w-2xl border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden text-xs">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full px-3 py-1.5 flex items-center gap-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        className="w-full px-3 py-1.5 flex items-center gap-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
       >
         {open ? (
-          <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+          <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
         ) : (
-          <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+          <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
         )}
         <Bug className="w-3.5 h-3.5 text-amber-600" />
-        <span className="font-medium text-gray-700 dark:text-gray-200">
+        <span className="font-medium text-slate-700 dark:text-slate-200">
           Trace
         </span>
-        <span className="text-[10px] text-gray-500">
+        <span className="text-[10px] text-slate-500">
           {traces.length} event{traces.length === 1 ? '' : 's'}
         </span>
       </button>
 
       {open && (
-        <div className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
           {traces.map((t, i) => (
             <TraceRow key={i} trace={t} />
           ))}
@@ -71,22 +71,22 @@ function TraceRow({ trace }) {
       >
         <div className="flex items-center gap-2 min-w-0">
           {expanded ? (
-            <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
+            <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
           ) : (
-            <ChevronRight className="w-3 h-3 text-gray-400 shrink-0" />
+            <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
           )}
           {meta.Icon}
           <span className={`font-mono text-[11px] truncate ${meta.titleClass}`}>
             {meta.title}
           </span>
           {meta.subtitle && (
-            <span className="text-[10px] text-gray-500 truncate">
+            <span className="text-[10px] text-slate-500 truncate">
               {meta.subtitle}
             </span>
           )}
         </div>
         {typeof t.duration_ms === 'number' && (
-          <span className="text-[10px] text-gray-400 shrink-0">
+          <span className="text-[10px] text-slate-400 shrink-0">
             {t.duration_ms < 1 ? '<1' : Math.round(t.duration_ms)} ms
           </span>
         )}
@@ -144,7 +144,7 @@ function headerMeta(kind, t) {
   return {
     Icon: <Zap className="w-3 h-3 text-amber-500 shrink-0" />,
     title: t.node || '?',
-    titleClass: 'text-gray-800 dark:text-gray-100',
+    titleClass: 'text-slate-800 dark:text-slate-100',
     subtitle: '',
   }
 }
@@ -174,10 +174,10 @@ function renderBody(kind, t) {
 function JsonBlock({ label, value }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">
+      <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-0.5">
         {label}
       </div>
-      <pre className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-[10px] leading-snug text-gray-700 dark:text-gray-200 overflow-x-auto whitespace-pre-wrap break-words max-h-72">
+      <pre className="p-2 bg-slate-50 dark:bg-slate-800 rounded text-[10px] leading-snug text-slate-700 dark:text-slate-200 overflow-x-auto whitespace-pre-wrap break-words max-h-72">
         {safeStringify(value)}
       </pre>
     </div>
@@ -187,10 +187,10 @@ function JsonBlock({ label, value }) {
 function CodeBlock({ label, value }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">
+      <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-0.5">
         {label}
       </div>
-      <pre className="p-2 bg-violet-50 dark:bg-violet-950/30 rounded text-[10px] leading-snug text-gray-800 dark:text-gray-100 overflow-x-auto whitespace-pre max-h-72 font-mono">
+      <pre className="p-2 bg-violet-50 dark:bg-violet-950/30 rounded text-[10px] leading-snug text-slate-800 dark:text-slate-100 overflow-x-auto whitespace-pre max-h-72 font-mono">
         {value || '(empty)'}
       </pre>
     </div>

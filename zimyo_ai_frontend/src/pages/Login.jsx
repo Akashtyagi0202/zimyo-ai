@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login } from '../api/client'
-import { Bot, User, KeyRound, Shield, Loader2, AlertCircle, Sparkles } from 'lucide-react'
+import { User, KeyRound, Shield, Loader2, AlertCircle, Sparkles } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate()
@@ -39,107 +43,117 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zimyo-800 via-zimyo-700 to-blue-900 flex items-center justify-center p-4">
-      {/* Background decoration */}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Soft accent blobs — subtle, no longer dominate the page */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse-soft" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-zimyo-500/5 rounded-full blur-3xl" />
+        <div className="absolute -top-32 -right-32 w-80 h-80 bg-indigo-200/30 dark:bg-indigo-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-violet-200/30 dark:bg-violet-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md animate-fade-in-scale">
-        {/* Logo & Title */}
-        <div className="text-center mb-8">
-          <div className="animate-float inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl mb-4 border border-white/20 shadow-lg shadow-white/5">
-            <Bot className="w-8 h-8 text-white" />
+      <div className="relative w-full max-w-sm animate-fade-in-scale">
+        {/* Brand */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 mb-4 shadow-lg shadow-indigo-600/25">
+            <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Zimyo AI</h1>
-          <p className="text-blue-200 mt-2 flex items-center justify-center gap-1.5">
-            <Sparkles className="w-4 h-4" />
-            HR Assistant - Smart & Fast
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            Zimyo AI
+          </h1>
+          <p className="text-[12.5px] text-slate-500 dark:text-slate-400 mt-1">
+            HR Assistant — smart, fast, conversational
           </p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-white/20 dark:border-gray-700">
-            <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Login card */}
+        <Card className="border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-900/5 dark:shadow-black/30">
+          <CardHeader className="space-y-1 pb-3">
+            <CardTitle className="text-base">Sign in</CardTitle>
+            <CardDescription className="text-[12.5px]">
+              Use your Zimyo employee ID and auth token.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm animate-slide-up">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <div className="flex items-start gap-2 p-2.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-md text-rose-700 dark:text-rose-300 text-xs animate-slide-up">
+                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
 
-              {/* User ID */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Employee ID</label>
-                <div className="relative group">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-zimyo-500 transition-colors" />
-                  <input
-                    type="text"
-                    value={form.userId}
-                    onChange={(e) => setForm({ ...form, userId: e.target.value })}
-                    placeholder="Enter your employee ID"
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600"
-                  />
-                </div>
-              </div>
+              <Field label="Employee ID" icon={User}>
+                <Input
+                  type="text"
+                  value={form.userId}
+                  onChange={(e) => setForm({ ...form, userId: e.target.value })}
+                  placeholder="e.g. ZIM1234"
+                  required
+                  className="pl-9 h-10"
+                />
+              </Field>
 
-              {/* Role */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Role</label>
-                <div className="relative group">
-                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-zimyo-500 transition-colors" />
-                  <select
-                    value={form.role}
-                    onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600 appearance-none cursor-pointer"
-                  >
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                  </select>
-                </div>
-              </div>
+              <Field label="Role" icon={Shield}>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-transparent pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none cursor-pointer"
+                >
+                  <option value="employee">Employee</option>
+                  <option value="manager">Manager</option>
+                </select>
+              </Field>
 
-              {/* Token */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Auth Token</label>
-                <div className="relative group">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-zimyo-500 transition-colors" />
-                  <input
-                    type="password"
-                    value={form.userToken}
-                    onChange={(e) => setForm({ ...form, userToken: e.target.value })}
-                    placeholder="Enter your auth token"
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-zimyo-500/20 focus:border-zimyo-500 outline-none transition-all text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600"
-                  />
-                </div>
-              </div>
+              <Field label="Auth Token" icon={KeyRound}>
+                <Input
+                  type="password"
+                  value={form.userToken}
+                  onChange={(e) => setForm({ ...form, userToken: e.target.value })}
+                  placeholder="Paste your token"
+                  required
+                  className="pl-9 h-10"
+                />
+              </Field>
 
-              {/* Submit */}
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-zimyo-600 to-indigo-600 hover:from-zimyo-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-zimyo-600/25 hover:shadow-xl hover:shadow-zimyo-600/30 active:scale-[0.98]"
+                className={cn(
+                  'w-full h-10 mt-2',
+                  'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700',
+                  'text-white shadow-md shadow-indigo-600/20'
+                )}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Connecting...
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Connecting…
                   </>
                 ) : (
-                  'Login'
+                  'Sign in'
                 )}
-              </button>
+              </Button>
             </form>
-        </div>
+          </CardContent>
+        </Card>
 
-        <p className="text-center text-blue-300/60 text-xs mt-6 flex items-center justify-center gap-1">
+        <p className="text-center text-slate-400 dark:text-slate-500 text-[10.5px] mt-5 flex items-center justify-center gap-1">
           <Sparkles className="w-3 h-3" />
-          Powered by Zimyo AI Assistant
+          Powered by Zimyo AI
         </p>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, icon: Icon, children }) {
+  return (
+    <div>
+      <label className="block text-[12px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+        {label}
+      </label>
+      <div className="relative group">
+        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+        {children}
       </div>
     </div>
   )

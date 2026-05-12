@@ -6,15 +6,17 @@
  * {type: "chips"} ui block and rendered via MessageRenderer instead.
  */
 
+import { cn } from '@/lib/utils'
+
 const COLORS = [
-  'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:border-red-300 hover:shadow-sm',
-  'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300 hover:shadow-sm',
-  'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 hover:shadow-sm',
-  'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:border-amber-300 hover:shadow-sm',
-  'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300 hover:shadow-sm',
-  'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 hover:border-pink-300 hover:shadow-sm',
-  'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 hover:border-cyan-300 hover:shadow-sm',
-  'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 hover:border-orange-300 hover:shadow-sm',
+  'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:border-rose-300 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20 dark:hover:bg-rose-500/20',
+  'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20 dark:hover:bg-blue-500/20',
+  'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20 dark:hover:bg-emerald-500/20',
+  'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:border-amber-300 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20 dark:hover:bg-amber-500/20',
+  'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/20 dark:hover:bg-violet-500/20',
+  'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 hover:border-pink-300 dark:bg-pink-500/10 dark:text-pink-300 dark:border-pink-500/20 dark:hover:bg-pink-500/20',
+  'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 hover:border-cyan-300 dark:bg-cyan-500/10 dark:text-cyan-300 dark:border-cyan-500/20 dark:hover:bg-cyan-500/20',
+  'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 hover:border-orange-300 dark:bg-orange-500/10 dark:text-orange-300 dark:border-orange-500/20 dark:hover:bg-orange-500/20',
 ]
 
 const PATTERNS = [
@@ -123,7 +125,11 @@ export default function ActionButtons({ text, onSelect }) {
         <button
           key={opt.label}
           onClick={() => onSelect(opt.value)}
-          className={`animate-stagger px-3.5 py-2 rounded-xl border text-xs font-medium transition-all active:scale-95 ${COLORS[i % COLORS.length]}`}
+          className={cn(
+            'animate-stagger inline-flex items-center px-3.5 py-1.5 rounded-full border text-xs font-medium',
+            'transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            COLORS[i % COLORS.length]
+          )}
           style={{ animationDelay: `${i * 50}ms` }}
         >
           {opt.label}

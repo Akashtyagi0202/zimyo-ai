@@ -20,6 +20,7 @@ import Approval from './messages/Approval'
 import Split from './messages/Split'
 import Dashboard from './messages/Dashboard'
 import Empty from './messages/Empty'
+import Text from './messages/Text'
 import ChatHandoff from './messages/ChatHandoff'
 import Loading from './messages/Loading'
 import StatsCards from './messages/StatsCards'
@@ -41,6 +42,7 @@ const RENDERERS = {
   stats:         StatsCards,
   dashboard:     Dashboard,
   empty:         Empty,
+  text:          Text,
 
   // Data input
   form:          Form,
@@ -83,18 +85,58 @@ function ChartFallback() {
   )
 }
 
+// Track which unknown types we've already warned about so the console
+// doesn't flood when the same drift hits every message of a session.
+const _warnedUnknownTypes = new Set()
+
+function UnknownType({ type }) {
+  if (import.meta.env.PROD) return null
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[12px] text-amber-800 mt-2 max-w-2xl">
+      <strong>Unknown message type</strong>: <code>{String(type)}</code>
+      <div className="text-amber-700 mt-1">
+        Backend sent a <code>type</code> the frontend doesn't recognise. Add it
+        to <code>RENDERERS</code> in <code>MessageRenderer.jsx</code>, or check
+        the contract.
+      </div>
+    </div>
+  )
+}
+
 export default function MessageRenderer({ msg, onAction }) {
   if (!msg || !msg.type) return null
   const Component = RENDERERS[msg.type]
-  if (!Component) return null
+  if (!Component) {
+    if (!_warnedUnknownTypes.has(msg.type)) {
+      _warnedUnknownTypes.add(msg.type)
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[MessageRenderer] Unknown msg.type=${JSON.stringify(msg.type)}; ` +
+        `add a renderer or check the backend contract.`,
+      )
+    }
+    return <UnknownType type={msg.type} />
+  }
+
+  // For Form/Wizard/Editor, key on the field-shape signature so a
+  // ui_partial → final transition (which replaces the field set with
+  // updated defaults but keeps the same msg.id) forces a remount and
+  // re-seeds useState(initial). Without this, default-value updates
+  // are silently dropped because useState only reads its initialiser
+  // on the first mount.
+  let key
+  if (msg.type === 'form' || msg.type === 'wizard') {
+    const fields = msg.fields || (msg.steps && msg.steps.flatMap(s => s.fields || [])) || []
+    key = fields.map(f => `${f.id}:${typeof f.defaultValue}`).join('|') || undefined
+  }
 
   if (LAZY_TYPES.has(msg.type)) {
     return (
       <Suspense fallback={<ChartFallback />}>
-        <Component msg={msg} onAction={onAction} />
+        <Component key={key} msg={msg} onAction={onAction} />
       </Suspense>
     )
   }
 
-  return <Component msg={msg} onAction={onAction} />
+  return <Component key={key} msg={msg} onAction={onAction} />
 }

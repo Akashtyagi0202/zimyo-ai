@@ -1,5 +1,21 @@
 node_modules
-.env
-.env.local
-.env.*.local
 dist
+build
+
+# secrets — every variant
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+
+# Ad-hoc screenshots dropped at project root
+Screenshot*.png
+
+# Logs
+*.log

@@ -11,27 +11,29 @@
 
 import { useState } from 'react'
 import { Search, ChevronDown, ChevronUp, Download } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const BADGE_COLORS = {
-  // Status badges
-  Approved: 'bg-green-100 text-green-700',
-  Pending: 'bg-yellow-100 text-yellow-800',
-  Rejected: 'bg-red-100 text-red-700',
-  Active: 'bg-green-100 text-green-700',
-  Expired: 'bg-gray-100 text-gray-600',
+  // Status
+  Approved:   'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  Pending:    'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
+  Rejected:   'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+  Active:     'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  Expired:    'bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300',
   // Holiday types
-  National: 'bg-red-100 text-red-700',
-  Public: 'bg-blue-100 text-blue-700',
-  Restricted: 'bg-amber-100 text-amber-700',
-  Festival: 'bg-purple-100 text-purple-700',
-  // Generic
-  default: 'bg-gray-100 text-gray-700',
+  National:   'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+  Public:     'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
+  Restricted: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  Festival:   'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',
+  default:    'bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300',
 }
 
 function formatCell(value, type) {
   if (value === null || value === undefined) return '—'
   if (type === 'currency') return `₹${Number(value).toLocaleString('en-IN')}`
-  if (type === 'date' && value.includes('-')) {
+  if (type === 'date' && typeof value === 'string' && value.includes('-')) {
     try {
       return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     } catch { return value }
@@ -91,7 +93,6 @@ export default function DataTable({ msg, onAction }) {
   const [sortCol, setSortCol] = useState(null)
   const [sortDir, setSortDir] = useState('asc')
 
-  // Filter rows by search
   let filtered = rows
   if (search.trim()) {
     const q = search.toLowerCase()
@@ -100,7 +101,6 @@ export default function DataTable({ msg, onAction }) {
     )
   }
 
-  // Sort
   if (sortCol) {
     filtered = [...filtered].sort((a, b) => {
       const va = a[sortCol] ?? '', vb = b[sortCol] ?? ''
@@ -109,7 +109,6 @@ export default function DataTable({ msg, onAction }) {
     })
   }
 
-  // Group
   const grouped = {}
   if (groupBy) {
     filtered.forEach(row => {
@@ -123,12 +122,13 @@ export default function DataTable({ msg, onAction }) {
 
   const visibleCols = columns.filter(c => c.id !== groupBy)
 
-  // Empty state
   if (!rows.length && emptyState) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center mt-2 animate-fade-in-scale">
-        <p className="text-sm font-medium text-gray-700">{emptyState.title}</p>
-        {emptyState.description && <p className="text-xs text-gray-500 mt-1">{emptyState.description}</p>}
+      <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-7 text-center mt-2 animate-fade-in-scale">
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{emptyState.title}</p>
+        {emptyState.description && (
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{emptyState.description}</p>
+        )}
       </div>
     )
   }
@@ -144,56 +144,62 @@ export default function DataTable({ msg, onAction }) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full max-w-2xl mt-2 animate-fade-in-scale">
-      {/* Header */}
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden w-full max-w-2xl mt-2 animate-fade-in-scale shadow-sm">
       {title && (
-        <div className="px-4 py-2.5 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-800">{title}</span>
-          <div className="flex items-center gap-3">
+        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
+          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</span>
+          <div className="flex items-center gap-2">
             {summary && (
-              <span className="text-xs text-gray-500">{summary.label}: {summary.value}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {summary.label}: <span className="font-medium text-slate-700 dark:text-slate-200">{summary.value}</span>
+              </span>
             )}
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => downloadCsv(title, visibleCols, filtered)}
               title="Download as CSV"
               aria-label="Download as CSV"
-              className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+              className="h-7 px-2 text-xs text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>CSV</span>
-            </button>
+              <Download className="w-3.5 h-3.5 mr-1" />
+              CSV
+            </Button>
           </div>
         </div>
       )}
 
-      {/* Search */}
       {searchable && (
-        <div className="px-4 py-2 border-b border-gray-100">
-          <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5">
-            <Search className="w-3.5 h-3.5 text-gray-400" />
-            <input
+        <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder={msg.searchPlaceholder || 'Search...'}
-              className="bg-transparent outline-none text-xs flex-1 text-gray-700 placeholder:text-gray-400"
+              placeholder={msg.searchPlaceholder || 'Search…'}
+              className="h-8 pl-8 text-xs rounded-lg"
             />
           </div>
         </div>
       )}
 
-      {/* Table */}
       <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-[1]">
-            <tr className="border-b border-gray-200 bg-gray-50">
+            <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 backdrop-blur">
               {visibleCols.map(col => (
                 <th
                   key={col.id}
                   style={col.width ? { width: col.width } : undefined}
-                  className={`px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider select-none
-                    ${col.align === 'right' || col.type === 'number' || col.type === 'currency' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}
-                    ${col.sortable ? 'cursor-pointer hover:text-gray-700' : ''}`}
+                  className={cn(
+                    'px-4 py-2.5 text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none',
+                    col.align === 'right' || col.type === 'number' || col.type === 'currency'
+                      ? 'text-right'
+                      : col.align === 'center'
+                        ? 'text-center'
+                        : 'text-left',
+                    col.sortable && 'cursor-pointer hover:text-slate-700 dark:hover:text-slate-200'
+                  )}
                   onClick={() => col.sortable && handleSort(col.id)}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -221,17 +227,18 @@ export default function DataTable({ msg, onAction }) {
         </table>
       </div>
 
-      {/* Footer actions */}
       {actions && actions.length > 0 && (
-        <div className="px-4 py-2 border-t border-gray-100 flex gap-2 justify-end">
+        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 flex gap-2 justify-end">
           {actions.map(a => (
-            <button
+            <Button
               key={a.id}
+              variant="link"
+              size="sm"
               onClick={() => onAction?.({ action: a.id })}
-              className="text-xs text-blue-600 hover:underline"
+              className="h-7 px-1 text-xs text-indigo-600 dark:text-indigo-400"
             >
               {a.label}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -244,19 +251,27 @@ function GroupRows({ groupName, rows, columns, colSpan, onAction }) {
     <>
       {groupName && (
         <tr>
-          <td colSpan={colSpan} className="px-4 py-1.5 bg-gray-50/70 border-b border-gray-100">
-            <span className="text-[11px] font-semibold text-gray-400">{groupName}</span>
+          <td colSpan={colSpan} className="px-4 py-1.5 bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800">
+            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              {groupName}
+            </span>
           </td>
         </tr>
       )}
       {rows.map((row, i) => (
-        <tr key={row.id || i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+        <tr
+          key={row.id || i}
+          className="border-b border-slate-50 dark:border-slate-800/60 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+        >
           {columns.map(col => (
             <td
               key={col.id}
-              className={`px-4 py-2.5 text-gray-700
-                ${col.align === 'right' || col.type === 'number' || col.type === 'currency' ? 'text-right' : col.align === 'center' ? 'text-center' : ''}
-                ${col.type === 'number' || col.type === 'currency' ? 'font-medium' : ''}`}
+              className={cn(
+                'px-4 py-2.5 text-slate-700 dark:text-slate-200',
+                (col.align === 'right' || col.type === 'number' || col.type === 'currency') && 'text-right',
+                col.align === 'center' && 'text-center',
+                (col.type === 'number' || col.type === 'currency') && 'font-medium tabular-nums'
+              )}
             >
               <CellValue col={col} value={row[col.id]} onAction={onAction} />
             </td>
@@ -268,25 +283,23 @@ function GroupRows({ groupName, rows, columns, colSpan, onAction }) {
 }
 
 function CellValue({ col, value, onAction }) {
-  if (value === null || value === undefined) return <span className="text-gray-300">—</span>
+  if (value === null || value === undefined) return <span className="text-slate-300 dark:text-slate-600">—</span>
 
-  // Badge (object with label+color OR string)
   if (col.type === 'badge') {
     if (typeof value === 'object' && value.label) {
       return (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${BADGE_COLORS[value.label] ?? BADGE_COLORS.default}`}>
+        <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', BADGE_COLORS[value.label] ?? BADGE_COLORS.default)}>
           {value.label}
         </span>
       )
     }
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${BADGE_COLORS[value] ?? BADGE_COLORS.default}`}>
+      <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', BADGE_COLORS[value] ?? BADGE_COLORS.default)}>
         {value}
       </span>
     )
   }
 
-  // Action group
   if (col.type === 'action_group' && typeof value === 'object' && value.actions) {
     return (
       <div className="flex gap-2">
@@ -296,11 +309,15 @@ function CellValue({ col, value, onAction }) {
             onClick={() => !a.disabled && onAction?.({ action: a.id })}
             disabled={a.disabled}
             title={a.disabled ? a.disabledReason : undefined}
-            className={`text-xs font-medium ${
-              a.style === 'danger' ? 'text-red-600 hover:text-red-700' :
-              a.style === 'primary' ? 'text-blue-600 hover:text-blue-700' :
-              'text-gray-600 hover:text-gray-800'
-            } ${a.disabled ? 'opacity-40 cursor-not-allowed' : 'hover:underline'}`}
+            className={cn(
+              'text-xs font-medium transition-colors',
+              a.style === 'danger'
+                ? 'text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300'
+                : a.style === 'primary'
+                  ? 'text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100',
+              a.disabled ? 'opacity-40 cursor-not-allowed' : 'hover:underline'
+            )}
           >
             {a.label}
           </button>
@@ -309,12 +326,11 @@ function CellValue({ col, value, onAction }) {
     )
   }
 
-  // Single action
   if (col.type === 'action' && typeof value === 'object') {
     return (
       <button
         onClick={() => onAction?.({ action: value.id })}
-        className="text-xs text-blue-600 hover:underline font-medium"
+        className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
       >
         {value.label}
       </button>
