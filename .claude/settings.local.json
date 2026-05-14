@@ -37,13 +37,15 @@
       "Bash(venv/bin/python -c \"from hrms_agents.agents.onboarding.nodes.candidate_list import list_candidates; print\\('OK'\\)\")",
       "Bash(venv/bin/python -m pytest tests/test_trace_serialize.py -v --no-header)",
       "Bash(\"/Users/akashtyagi/Documents/code/zimyo ai/zimyo_ai_assistant/.venv/bin/python3\" /tmp/zimyo_smoke.py \"onboard candidates whose name starts with A\")",
-      "Bash(.venv/bin/python3 -c ' *)"
+      "Bash(.venv/bin/python3 -c ' *)",
+      "Bash(lsof -i :8000 -i :3001 -i :5173 -sTCP:LISTEN)",
+      "Bash(ps -ax -o pid,command)"
     ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "shadcn"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
