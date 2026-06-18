@@ -28,6 +28,7 @@ import SuccessBanner from './messages/SuccessBanner'
 import ErrorCard from './messages/ErrorCard'
 import Chips from './messages/Chips'
 import PdfPreview from './messages/PdfPreview'
+import BulkReview from './messages/BulkReview'
 
 // Lazy imports — chart components (heavy, recharts ~400KB) + editor (TipTap ~120KB)
 const BarChart = lazy(() => import('./messages/BarChart'))
@@ -53,6 +54,7 @@ const RENDERERS = {
   // Workflow
   checklist:     Checklist,
   approval:      Approval,
+  bulk_review:   BulkReview,
   split:         Split,
   confirmation:  Confirmation,
 
@@ -62,8 +64,9 @@ const RENDERERS = {
   chart_pie:     PieChart,
 
   // Status
-  success:       SuccessBanner,
-  error:         ErrorCard,
+  success:        SuccessBanner,
+  success_banner: SuccessBanner,
+  error:          ErrorCard,
 
   // Preview / hosted assets
   pdf:           PdfPreview,

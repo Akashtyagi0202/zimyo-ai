@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { sendMessageStream, createSession, getSessions, getSessionHistory, getWorkflow, getPolicyStatus, rateMessage } from '../api/client'
 import { AGENT_BY_ID, DEFAULT_AGENT_ID } from '../config/agents'
 import Sidebar from '../components/Sidebar'
+import ChatSessionRail from '../components/ChatSessionRail'
 import ChatMessage, { TypingIndicator } from '../components/ChatMessage'
 import ChatInput from '../components/ChatInput'
 import QuickActions from '../components/QuickActions'
 import Toast from '../components/Toast'
+import WorkflowList from '../components/WorkflowList'
 import { ArrowLeft, FileSearch, Sun, Moon, GitBranch, MoreHorizontal } from 'lucide-react'
 import useDarkMode from '../hooks/useDarkMode'
 import { Button } from '@/components/ui/button'
@@ -100,12 +102,18 @@ export default function Chat({ user, onLogout }) {
   const config = { ...agent, ...agent.chat }
   const { isDark, toggle: toggleDark } = useDarkMode()
 
-  const [sessions, setSessions] = useState([])
   const [activeSessionId, setActiveSessionId] = useState(null)
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [phaseLabel, setPhaseLabel] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Conversation rail state.
+  const [railCollapsed, setRailCollapsed] = useState(false)
+  // Bump to force the rail to re-fetch its list (after createSession lands).
+  const [sessionListVersion, setSessionListVersion] = useState(0)
+  // Onboarding-agent only: 'assistant' shows the chat, 'workflow' swaps it for
+  // the workflow panel (stub for now; list rendering will land later).
+  const [onboardingView, setOnboardingView] = useState('assistant')
   const [toast, setToast] = useState(null)
   const [activeWorkflow, setActiveWorkflow] = useState(null)
   const [policyStatus, setPolicyStatus] = useState(null)
@@ -123,6 +131,10 @@ export default function Chat({ user, onLogout }) {
   // can abort the first cleanly (no setState on an unmounted component,
   // no orphaned reader leaking the SSE socket).
   const sendAbortRef = useRef(null)
+  // Mirror of `loading` for the polling interval's stale-closure-free read —
+  // we must NOT merge polled history mid-stream (the live SSE owns messages).
+  const loadingRef = useRef(false)
+  useEffect(() => { loadingRef.current = loading }, [loading])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -179,18 +191,119 @@ export default function Chat({ user, onLogout }) {
     return () => { cancelled = true; if (timer) clearTimeout(timer) }
   }, [agentType, user?.userId])
 
+  // On mount / user-change: pick up the most recent session and load its
+  // history so the chat reads like a continuation. If no sessions exist
+  // yet we leave activeSessionId null — the first send will mint one.
   const loadSessions = async () => {
     try {
       const result = await getSessions(user.userId)
-      const sessionList = result.sessions || result || []
-      setSessions(Array.isArray(sessionList) ? sessionList : [])
-      if (!Array.isArray(sessionList) || sessionList.length === 0) {
-        await handleNewSession()
+      const sessionList = Array.isArray(result?.sessions)
+        ? result.sessions
+        : (Array.isArray(result) ? result : [])
+      if (sessionList.length === 0) {
+        setActiveSessionId(null)
+        setMessages([])
+        return
+      }
+      sessionList.sort((a, b) => {
+        const ta = new Date(a.last_active || a.created_at || 0).getTime()
+        const tb = new Date(b.last_active || b.created_at || 0).getTime()
+        return tb - ta
+      })
+      const mostRecent = sessionList[0]
+      const recentId = mostRecent.session_id || mostRecent.sessionId
+      if (recentId) {
+        await loadSessionHistory(recentId)
       }
     } catch {
-      await handleNewSession()
+      // Swallow — empty chat is a fine fallback. User can still type and
+      // we'll mint a session on first send.
+      setActiveSessionId(null)
+      setMessages([])
     }
   }
+
+  // Resume an existing conversation. Maps the persisted Mongo shape
+  // (role/message/timestamp/data) into the in-memory message shape Chat
+  // renders, so structured cards (form/wizard/confirmation) re-render
+  // exactly as they did the first time.
+  const loadSessionHistory = useCallback(async (sessionId) => {
+    if (!user?.userId || !sessionId) return
+    try {
+      const res = await getSessionHistory(user.userId, sessionId)
+      const rows = Array.isArray(res?.history) ? res.history : []
+      const mapped = rows.map(r => ({
+        id: r.message_id || `${r.role}-${r.timestamp}`,
+        role: r.role,
+        text: getDisplayText(r.message ?? ''),
+        data: r.data || null,
+        timestamp: r.timestamp,
+        // Server-side annotation: 'active' | 'resolved' | undefined.
+        // ChatMessage locks the structured card when resolved so admins
+        // can't replay an approval that was already actioned elsewhere
+        // (Approvals page, Mission Control drawer, etc.).
+        interruptStatus: r.interrupt_status,
+      }))
+      setActiveSessionId(sessionId)
+      setMessages(mapped)
+    } catch (err) {
+      setToast({ type: 'error', message: err.message || 'Could not load conversation.' })
+    }
+  }, [user?.userId])
+
+  // Lightweight poll: refresh out-of-band changes to existing messages —
+  // specifically the structured `data` card (e.g. the auto-progress "Chain
+  // steps" checklist) which the backend rewrites in place as a workflow
+  // advances via webhook / approve resumes, and the interrupt lock state.
+  // Merges by message id; never appends/removes (so optimistic + streaming
+  // messages aren't disturbed) and returns the prior array unchanged when
+  // nothing moved (no needless re-render).
+  const refreshSessionData = useCallback(async () => {
+    if (!user?.userId || !activeSessionId) return
+    try {
+      const res = await getSessionHistory(user.userId, activeSessionId)
+      const rows = Array.isArray(res?.history) ? res.history : []
+      if (!rows.length) return
+      const byId = new Map(
+        rows.map(r => [r.message_id || `${r.role}-${r.timestamp}`, r]),
+      )
+      setMessages(prev => {
+        let changed = false
+        const next = prev.map(m => {
+          const r = byId.get(m.id)
+          if (!r) return m
+          const nextData = r.data || null
+          const sameData = JSON.stringify(nextData) === JSON.stringify(m.data || null)
+          const sameStatus = (r.interrupt_status ?? null) === (m.interruptStatus ?? null)
+          if (sameData && sameStatus) return m
+          changed = true
+          return { ...m, data: nextData, interruptStatus: r.interrupt_status }
+        })
+        return changed ? next : prev
+      })
+    } catch {
+      // Best-effort — a transient poll failure is harmless; next tick retries.
+    }
+  }, [user?.userId, activeSessionId])
+
+  useEffect(() => {
+    if (!activeSessionId) return
+    const id = setInterval(() => {
+      if (!loadingRef.current) refreshSessionData()
+    }, 8000)
+    return () => clearInterval(id)
+  }, [activeSessionId, refreshSessionData])
+
+  const handleSelectSession = useCallback((sessionId) => {
+    if (sessionId === activeSessionId) return
+    // Abort any in-flight stream from the previous conversation so it
+    // can't land on top of the resumed messages and confuse the UI.
+    sendAbortRef.current?.abort()
+    setLoading(false)
+    setPhaseLabel('')
+    setReplyContext(null)
+    loadSessionHistory(sessionId)
+  }, [activeSessionId, loadSessionHistory])
 
   const handleNewSession = async () => {
     try {
@@ -200,40 +313,12 @@ export default function Chat({ user, onLogout }) {
       })
       const newSessionId = result.sessionId || result.session_id
       if (newSessionId) {
-        const newSession = {
-          sessionId: newSessionId,
-          sessionName: result.sessionName || result.session_name || config.title,
-        }
-        setSessions((prev) => [newSession, ...prev])
         setActiveSessionId(newSessionId)
         setMessages([])
+        setSessionListVersion(v => v + 1)
       }
     } catch (err) {
       setToast({ type: 'error', message: err.message || 'Could not create a new chat.' })
-    }
-  }
-
-  const handleSelectSession = async (sessionId) => {
-    setActiveSessionId(sessionId)
-    setMessages([])
-    try {
-      const result = await getSessionHistory(user.userId, sessionId)
-      const history = result.history || result.messages || []
-      if (Array.isArray(history)) {
-        setMessages(
-          history.map((msg, i) => {
-            const raw = msg.message || msg.content || msg.text
-            return {
-              id: `hist-${i}`,
-              role: msg.role,
-              text: msg.role === 'user' ? getDisplayText(raw) : raw,
-              timestamp: msg.timestamp,
-            }
-          })
-        )
-      }
-    } catch {
-      // ignore
     }
   }
 
@@ -261,10 +346,7 @@ export default function Chat({ user, onLogout }) {
           })
           sessionId = result.sessionId || result.session_id
           setActiveSessionId(sessionId)
-          setSessions((prev) => [
-            { sessionId, sessionName: text.slice(0, 30) },
-            ...prev,
-          ])
+          setSessionListVersion(v => v + 1)
         } catch {
           return
         }
@@ -309,6 +391,67 @@ export default function Chat({ user, onLogout }) {
         ])
       }
 
+      // ── Typewriter buffer ───────────────────────────────────────────────
+      // Backend tokens arrive in coarse chunks (Bedrock can deliver a whole
+      // sentence in a single delta), so we accumulate them and reveal the
+      // text char-by-char at a steady, self-balancing cadence for a smooth
+      // ChatGPT-style typing feel. The per-frame step scales with the backlog
+      // so a big chunk still flushes quickly while the tail eases in gently.
+      const tw = { full: '', shown: 0, raf: 0, ended: false, final: null }
+
+      const finalizeBubble = () => {
+        const f = tw.final
+        if (!f) return
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === streamId
+              ? {
+                  ...m,
+                  text: f.text,
+                  data: f.data,
+                  resources: f.resources,
+                  streaming: false,
+                  messageId: f.messageId,
+                }
+              : m
+          )
+        )
+        if (f.toast) setToast(f.toast)
+      }
+
+      const pump = () => {
+        tw.raf = 0
+        const remaining = tw.full.length - tw.shown
+        if (remaining > 0) {
+          tw.shown = Math.min(
+            tw.full.length,
+            tw.shown + Math.max(2, Math.ceil(remaining / 10))
+          )
+          const slice = tw.full.slice(0, tw.shown)
+          setMessages((prev) =>
+            prev.map((m) => (m.id === streamId ? { ...m, text: slice } : m))
+          )
+        }
+        if (tw.shown < tw.full.length) {
+          tw.raf = requestAnimationFrame(pump)
+        } else if (tw.ended) {
+          // Caught up to the final text → swap in cards/links + drop the caret.
+          finalizeBubble()
+        }
+      }
+
+      const startPump = () => {
+        if (!tw.raf) tw.raf = requestAnimationFrame(pump)
+      }
+
+      // Stop the animation if this send is aborted (unmount / newer send / Stop).
+      controller.signal.addEventListener('abort', () => {
+        if (tw.raf) {
+          cancelAnimationFrame(tw.raf)
+          tw.raf = 0
+        }
+      })
+
       // Snapshot + clear reply context up-front so a slow stream doesn't carry
       // it into a subsequent message if user types before this one finishes.
       const replyToMessageId = replyContext?.messageId || null
@@ -331,11 +474,8 @@ export default function Chat({ user, onLogout }) {
             onToken: ({ t }) => {
               if (!t) return
               ensureStreamBubble()
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === streamId ? { ...m, text: (m.text || '') + t } : m
-                )
-              )
+              tw.full += t
+              startPump()
             },
             onTrace: (trace) => {
               // Backend only emits this when TRACE=true. Append to the
@@ -362,21 +502,22 @@ export default function Chat({ user, onLogout }) {
               }
 
               if (streamingCreated) {
-                // Replace the streaming bubble's payload with the final one.
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === streamId
-                      ? {
-                          ...m,
-                          text: finalText,
-                          data: finalData,
-                          resources,
-                          streaming: false,
-                          messageId: result.messageId || null,
-                        }
-                      : m
-                  )
-                )
+                // Hand the authoritative final text to the typewriter. It
+                // finishes revealing whatever hasn't typed yet, then
+                // finalizeBubble swaps in the real data/links, drops the caret
+                // and fires the toast. (finalText is the source of truth — it
+                // may differ slightly from the concatenated token stream.)
+                tw.full = finalText
+                tw.ended = true
+                tw.final = {
+                  text: finalText,
+                  data: finalData,
+                  resources,
+                  messageId: result.messageId || null,
+                  toast: result.toast,
+                }
+                if (tw.shown >= tw.full.length) finalizeBubble()
+                else startPump()
               } else {
                 setMessages((prev) => [
                   ...prev,
@@ -390,9 +531,8 @@ export default function Chat({ user, onLogout }) {
                     messageId: result.messageId || null,
                   },
                 ])
+                if (result.toast) setToast(result.toast)
               }
-
-              if (result.toast) setToast(result.toast)
             },
             onError: (err) => {
               setMessages((prev) => [
@@ -467,6 +607,7 @@ export default function Chat({ user, onLogout }) {
   }, [user?.userId])
 
   const showQuickActions = messages.length === 0
+  const showWorkflowView = agentType === 'onboarding' && onboardingView === 'workflow'
 
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -475,15 +616,28 @@ export default function Chat({ user, onLogout }) {
 
       {/* Sidebar */}
       <Sidebar
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onSelectSession={handleSelectSession}
-        onNewSession={handleNewSession}
         onLogout={onLogout}
         user={user}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        activeAgentId={agentType}
+        onboardingView={onboardingView}
+        onOnboardingViewChange={setOnboardingView}
       />
+
+      {/* Conversations rail — list of past sessions; click to resume.
+          Hidden in the workflow view since that pane has its own header. */}
+      {!showWorkflowView ? (
+        <ChatSessionRail
+          userId={user?.userId}
+          activeSessionId={activeSessionId}
+          collapsed={railCollapsed}
+          onToggleCollapse={() => setRailCollapsed(c => !c)}
+          onSelectSession={handleSelectSession}
+          onNewChat={handleNewSession}
+          refreshKey={sessionListVersion}
+        />
+      ) : null}
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -568,39 +722,52 @@ export default function Chat({ user, onLogout }) {
 
         {/* Messages Area — clean white surface so the chat reads as the
             active panel against the sidebar gutter; matches the slim
-            header + minimal empty state. */}
-        <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-950">
-          {showQuickActions ? (
-            <QuickActions agentType={agentType} onAction={handleSend} />
-          ) : (
-            <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-              {messages.map((msg, idx) => (
-                <ChatMessage
-                  key={msg.id}
-                  message={msg}
-                  isLast={idx === messages.length - 1 && !loading}
-                  onActionSelect={handleSend}
-                  onRate={handleRate}
-                  onReply={handleReply}
-                />
-              ))}
-              {loading && <TypingIndicator label={phaseLabel} />}
-              <div ref={messagesEndRef} />
+            header + minimal empty state. Onboarding-agent's "Workflow"
+            sidebar tab swaps this whole pane (and hides the input) for
+            the workflow list. */}
+        {showWorkflowView ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <WorkflowList
+              userId={user?.userId}
+              onActiveChange={(wf) => setActiveWorkflow(wf && wf.id ? wf : null)}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-950">
+              {showQuickActions ? (
+                <QuickActions agentType={agentType} onAction={handleSend} />
+              ) : (
+                <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+                  {messages.map((msg, idx) => (
+                    <ChatMessage
+                      key={msg.id}
+                      message={msg}
+                      isLast={idx === messages.length - 1 && !loading}
+                      onActionSelect={handleSend}
+                      onRate={handleRate}
+                      onReply={handleReply}
+                    />
+                  ))}
+                  {loading && <TypingIndicator label={phaseLabel} />}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Input */}
-        <ChatInput
-          onSend={handleSend}
-          disabled={loading}
-          replyContext={replyContext}
-          onCancelReply={() => setReplyContext(null)}
-          placeholder={config.placeholder}
-          hint={config.inputHint}
-          onError={setToast}
-          inputMode={inputMode}
-        />
+            {/* Input */}
+            <ChatInput
+              onSend={handleSend}
+              disabled={loading}
+              replyContext={replyContext}
+              onCancelReply={() => setReplyContext(null)}
+              placeholder={config.placeholder}
+              hint={config.inputHint}
+              onError={setToast}
+              inputMode={inputMode}
+            />
+          </>
+        )}
       </div>
     </div>
   )

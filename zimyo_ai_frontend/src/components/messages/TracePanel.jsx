@@ -18,7 +18,7 @@
  */
 
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Bug, Zap, Server, Code } from 'lucide-react'
+import { ChevronDown, ChevronRight, Bug, Zap, Server, Code, Activity } from 'lucide-react'
 
 export default function TracePanel({ traces }) {
   const [open, setOpen] = useState(false)
@@ -140,13 +140,46 @@ function headerMeta(kind, t) {
       subtitle: t.status || '',
     }
   }
-  // Default — node tick
-  return {
-    Icon: <Zap className="w-3 h-3 text-amber-500 shrink-0" />,
-    title: t.node || '?',
-    titleClass: 'text-slate-800 dark:text-slate-100',
-    subtitle: '',
+  if (kind === 'node') {
+    return {
+      Icon: <Zap className="w-3 h-3 text-amber-500 shrink-0" />,
+      title: t.node || 'node',
+      titleClass: 'text-slate-800 dark:text-slate-100',
+      subtitle: '',
+    }
   }
+  // Generic agent trace event (e.g. auto_progress_chain_start,
+  // auto_progress_step_start) — show the event name as the title and a short
+  // inline summary of its payload fields.
+  return {
+    Icon: <Activity className="w-3 h-3 text-violet-500 shrink-0" />,
+    title: kind,
+    titleClass: 'text-violet-700 dark:text-violet-300',
+    subtitle: inlineSummary(t),
+  }
+}
+
+// One-line preview of a generic event's payload — "k=v · k=v", envelope
+// fields stripped, each value clipped so the header stays single-line.
+function inlineSummary(t) {
+  const parts = []
+  for (const [k, v] of Object.entries(t || {})) {
+    if (ENVELOPE_KEYS.has(k)) continue
+    const val = v && typeof v === 'object' ? JSON.stringify(v) : String(v)
+    parts.push(`${k}=${val.length > 40 ? val.slice(0, 40) + '…' : val}`)
+  }
+  return parts.join(' · ').slice(0, 120)
+}
+
+const ENVELOPE_KEYS = new Set(['kind', 'ts', 'duration_ms', 'node', 'output'])
+
+function stripEnvelope(t) {
+  const out = {}
+  for (const [k, v] of Object.entries(t || {})) {
+    if (k === 'kind' || k === 'ts' || k === 'duration_ms') continue
+    out[k] = v
+  }
+  return out
 }
 
 function renderBody(kind, t) {
@@ -167,8 +200,11 @@ function renderBody(kind, t) {
       ? [<JsonBlock key="output" label="output" value={t.output} />]
       : [<JsonBlock key="error" label="error" value={t.error} />]
   }
-  // Node — original behavior
-  return [<JsonBlock key="output" label="output" value={t.output} />]
+  if (kind === 'node') {
+    return [<JsonBlock key="output" label="output" value={t.output} />]
+  }
+  // Generic agent event — dump the full payload minus envelope fields.
+  return [<JsonBlock key="payload" label="payload" value={stripEnvelope(t)} />]
 }
 
 function JsonBlock({ label, value }) {

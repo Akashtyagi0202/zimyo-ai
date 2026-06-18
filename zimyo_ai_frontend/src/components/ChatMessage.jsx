@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bot, User, FileText, Copy, Check, Volume2, VolumeX, Star, Reply } from 'lucide-react'
+import { Bot, User, FileText, Copy, Check, Volume2, VolumeX, Star, Reply, Lock } from 'lucide-react'
 import ActionButtons from './ActionButtons'
 import MessageRenderer from './MessageRenderer'
 import TracePanel from './messages/TracePanel'
@@ -149,21 +149,44 @@ export default function ChatMessage({ message, isLast, onActionSelect, onRate, o
           )}
         </div>
 
-        {/* Structured data — MessageRenderer handles table, chart, form, card, etc. */}
-        {!isUser && message.data && (
-          <MessageRenderer
-            msg={message.data}
-            onAction={(a) => {
-              if (a.values) {
-                onActionSelect?.(JSON.stringify({ action: a.action, ...a.values }))
-              } else if (a.action) {
-                onActionSelect?.(JSON.stringify({ action: a.action }))
-              } else if (a.value !== undefined && a.value !== null) {
-                onActionSelect?.(String(a.value))
-              }
-            }}
-          />
-        )}
+        {/* Structured data — MessageRenderer handles table, chart, form, card, etc.
+            When the backing workflow has resolved (admin approved/cancelled
+            from a different surface like the Approvals page), interactive
+            cards are locked so the old Submit/Approve buttons can't be
+            replayed — the graph won't be paused there anymore. */}
+        {!isUser && message.data && (() => {
+          const resolved = message.interruptStatus === 'resolved'
+          const node = (
+            <MessageRenderer
+              msg={message.data}
+              onAction={(a) => {
+                if (resolved) return
+                if (a.values) {
+                  onActionSelect?.(JSON.stringify({ action: a.action, ...a.values }))
+                } else if (a.action) {
+                  onActionSelect?.(JSON.stringify({ action: a.action }))
+                } else if (a.value !== undefined && a.value !== null) {
+                  onActionSelect?.(String(a.value))
+                }
+              }}
+            />
+          )
+          if (!resolved) return node
+          return (
+            <div className="relative w-full mt-1">
+              <div
+                aria-disabled
+                className="opacity-60 pointer-events-none select-none"
+              >
+                {node}
+              </div>
+              <div className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10.5px] font-medium text-slate-600 dark:text-slate-300">
+                <Lock className="w-3 h-3" />
+                Resolved
+              </div>
+            </div>
+          )
+        })()}
 
         {!isUser && isLast && !message.data && onActionSelect && (
           <ActionButtons text={message.text} onSelect={onActionSelect} />
