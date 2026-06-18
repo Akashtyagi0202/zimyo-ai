@@ -20,6 +20,9 @@ build/
 # Logs
 *.log
 
+# Frontend now lives in its own repo: github.com/zimyoTech/zimyo_ai_frontend
+zimyo_ai_frontend/
+
 # Python
 __pycache__/
 *.pyc
